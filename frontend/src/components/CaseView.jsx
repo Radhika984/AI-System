@@ -520,10 +520,16 @@ export default function CaseView({ c, rank, readOnly, canAct, onAction, busy, er
   }
   useEffect(() => {
     const h = (e) => {
-      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) || e.metaKey || e.ctrlKey) return
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) || e.target.isContentEditable || e.metaKey || e.ctrlKey) return
       if (readOnly || !canAct) return
       if (e.key === 'e') startEdit()
       if (e.key === 'Escape') setConfirming(null)
+      // Enter confirms an OPEN confirmation. The autoFocus attribute does not move focus for a button inserted after
+      // page load, so focus stays on <body>; handle Enter here. A focused button/link/summary keeps its own Enter.
+      if (e.key === 'Enter' && confirming && !done && !busy && !e.repeat && !e.target.closest?.('button, a, summary, [role=button]')) {
+        e.preventDefault()
+        commit(confirming)
+      }
       // A / R open the same confirmation as the buttons; nothing is posted until it is confirmed.
       if ((e.key === 'a' || e.key === 'r') && !editing && !done && !busy) setConfirming(e.key === 'a' ? 'approve' : 'reject')
     }

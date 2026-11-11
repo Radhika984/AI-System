@@ -128,15 +128,34 @@ def browser_checks(ui: str, api: str, passcode: str) -> None:
         pg.locator("body").click(position={"x": 700, "y": 300})
         pg.keyboard.press("a")
         pg.wait_for_timeout(400)
-        check("keyboard approve asks for confirmation first", len(api_json(api, "/api/audit")) == n0
-              and pg.locator("[role=group][aria-label='Confirm decision']").count() == 1)
-        pg.locator("[role=group] button", has_text="Yes").click()
+        confirm = pg.locator("[role=group][aria-label='Confirm decision']")
+        check("keyboard approve asks for confirmation first", len(api_json(api, "/api/audit")) == n0 and confirm.count() == 1)
+        pg.locator("input[aria-label='Your name for the audit log']").press("Enter")  # typing in a field: no confirm
+        pg.wait_for_timeout(600)
+        check("Enter inside a text field does not confirm", len(api_json(api, "/api/audit")) == n0 and confirm.count() == 1)
+        pg.locator("article h2").first.click()  # focus back on the page, not a field or button
+        pg.keyboard.press("Enter")
         pg.wait_for_timeout(1500)
-        check("passcode never rendered into page HTML", passcode not in pg.content())
         a = api_json(api, "/api/audit")
+        check("Enter confirms the open confirmation: exactly one action", len(a) == n0 + 1 and a[0]["action"] == "approve", f"{len(a) - n0} new")
+        check("passcode never rendered into page HTML", passcode not in pg.content())
         check("approve with passcode audited", a[0]["action"] == "approve" and a[0]["actor"] == "E2E Reviewer")
         advanced_to = pg.locator("article h2").first.inner_text()
         check("auto-advance after decision", advanced_to != first_head, f"{first_head!r} -> {advanced_to!r}")
+
+        # confirmation: Cancel records nothing; Escape closes; a double-click on Yes records exactly one
+        n1 = len(api_json(api, "/api/audit"))
+        pg.locator("article button.btn-primary").first.click()
+        confirm.get_by_role("button", name="Cancel").click()
+        pg.locator("article h2").first.click()
+        pg.keyboard.press("a")
+        pg.keyboard.press("Escape")
+        pg.wait_for_timeout(600)
+        check("Cancel / Escape record nothing", len(api_json(api, "/api/audit")) == n1 and confirm.count() == 0)
+        pg.locator("article button.btn-primary").first.click()
+        confirm.locator("button", has_text="Yes").dblclick()
+        pg.wait_for_timeout(1800)
+        check("double-click on confirm records exactly one action", len(api_json(api, "/api/audit")) == n1 + 1)
 
         # edit: guard error surfaced, then a valid faculty edit
         pg.locator("nav button", has_text="All").first.click()

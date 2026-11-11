@@ -47,9 +47,14 @@ reportId, questionId, verdict, repair, edit, route, confidence, evidence, studen
    * `stem_data`: inserted value must appear in the stored solution;
    * `option_repair`: only the single **keyed** option may be restored, its value must match a blind solver's numeric answer, and no solver may pick a different existing option; a missing *distractor* is authored content → faculty_review, `edit=null` (added after the R009 run, see PROMPTS.md mistake #2);
    * any text edit (AI or faculty) may not *introduce* raw LaTeX (`\command`, `$…$`) (added after R018, mistake #3);
-   * `answer_form`: additive only (`replace` contains `find` verbatim);
-   * `spelling`: only letters change (no digits/symbols/tags move);
-   * `solution_fix` / `solution_missing`: the edited solution must still end at the keyed answer the solvers agree on.
+   * `answer_form`: additive only (`replace` contains `find` verbatim), and the addition must be a unit and/or rounding instruction (no free numbers, answer text or option letters);
+   * `spelling`: only letters change (no digits/symbols/tags move); same word count; at most 3 words changed, each within 2 letter edits and ≤ ⅓ of its length; never a meaning-critical word (negations, true/false, correct/incorrect, increase/decrease, maximum/minimum, …);
+   * `exam_reference`: the deleted text is exactly an exam tag; `noise`: the deleted text is exactly a question number / rough-work note / source label / URL / exam tag;
+   * `markup_leak`: words around the markup unchanged; `notation`: words and numbers unchanged (only symbols, brackets, exponents);
+   * `stem_data`: insert-only;
+   * `type_mismatch`: question-text edits → faculty; a `questionType` change must match what both blind solvers' answers imply;
+   * `solution_fix` / `solution_missing`: the edited solution must still end at the keyed answer the solvers agree on, and may not introduce numbers found nowhere in the question, solution or key.
+7. Faculty actions are transactional (`Store.act`): validate → stage → save both state files → write audit. A refused request changes nothing (live question, status, patch file, audit).
 4. Injection-flagged reports are never auto-applied; their comment is only ever shown to the LLM as quoted data.
 5. Disagreement between solvers, or solver vs key when the judge says `no_error`, lowers confidence and escalates (`faculty_review`, or priority 1 in the console for a `no_error`) rather than guessing. Implemented in `pipeline.solvers_dispute` and `finalize`:
    * scope: the verdicts this rule names, **defects** and **`no_error`**. language_mode / display_issue / app_issue / already_fixed / not_actionable are outside it and are logged "rule 5 not applied";

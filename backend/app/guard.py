@@ -39,6 +39,100 @@ class GuardResult:
         return {"ok": self.ok, "errors": self.errors}
 
 
+# ---------------------------------------------------------------- semantic bounds (V1)
+# Structural rules alone let a "spelling" or "noise" edit change meaning ("not antagonistic" ->
+# "antagonistic", "Golden rice" -> "Golden wheat"). These bound each auto repair to what its
+# taxonomy label actually allows.
+_WORDS = re.compile(r"[A-Za-z]+(?:['’][A-Za-z]+)?")
+# Words whose small edits flip meaning; a spelling fix may never create, remove or alter them.
+_MEANING_CRITICAL = {
+    "not", "no", "nor", "never", "none", "neither", "cannot", "cant", "can't", "isn't", "aren't", "doesn't",
+    "don't", "won't", "true", "false", "correct", "incorrect", "right", "wrong", "increase", "increases",
+    "increased", "decrease", "decreases", "decreased", "maximum", "minimum", "max", "min", "always",
+    "only", "all", "any", "same", "equal", "unequal", "positive", "negative", "above", "below",
+    "before", "after", "inside", "outside", "accept", "except", "include", "exclude", "possible",
+    "impossible", "valid", "invalid",
+}
+SPELLING_MAX_WORDS_CHANGED = 3
+_EXAM_TAG = re.compile(r"[(\[]\s*(?:NEET|JEE|AIIMS|MHT[- ]?CET|MHCET|CBSE|BITSAT|KCET|AIPMT|IIT|WBJEE|COMEDK|EAMCET)"
+                       r"[^)\]]{0,30}\d{4}[^)\]]{0,20}[)\]]", re.I)
+_NOISE = re.compile(
+    r"(?:space\s+for\s+rough\s+work|rough\s+work(?:\s+space)?)"
+    r"|(?:^|(?<=\s))(?:Q(?:ues(?:tion)?)?\.?\s*(?:No\.?\s*)?\d{1,3}\s*[.):\-]?)(?=\s|$)"
+    r"|^\s*\d{1,3}\s*[.)](?=\s)"
+    r"|[(\[]\s*(?:source|ref(?:erence)?|courtesy)\s*[:\-][^)\]]{0,60}[)\]]"
+    r"|https?://\S+|www\.\S+"
+    r"|" + _EXAM_TAG.pattern, re.I)
+_UNIT = r"(?:[A-Za-zµμΩ°%]{1,6}(?:\s*\^?\s*\(?[-−]?\d\)?)?)(?:\s*(?:/|·|\*|\s)\s*[A-Za-zµμΩ°]{1,6}(?:\s*\^?\s*\(?[-−]?\d\)?)?){0,3}"
+_ROUNDING = (r"(?:round(?:ed)?\s+(?:off\s+)?to\s+(?:the\s+)?nearest\s+(?:integer|whole\s+number)"
+             r"|(?:correct\s+)?(?:up\s+)?to\s+(?:one|two|three|four|1|2|3|4)\s+(?:decimal\s+places?|significant\s+(?:figures|digits)))")
+_FORM_ITEM = rf"(?:in\s+(?:SI\s+units?|{_UNIT})|SI\s+units?|{_ROUNDING})"
+_ANSWER_FORM_ADDITION = re.compile(
+    rf"^\s*[,;]?\s*[(\[]?\s*{_FORM_ITEM}(?:\s*(?:,|;|and)\s*{_FORM_ITEM})?\s*[)\]]?\s*[.:]?\s*$", re.I)
+_OPTION_LETTER_UNIT = re.compile(r"\bin\s+[A-D]\b(?!\s*[/^·*])")  # "(in C)" could read as option C
+
+
+def _norm(t: str) -> str:
+    return re.sub(r"\s+", " ", t or "").strip()
+
+
+def _lev(a: str, b: str) -> int:
+    prev = list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        cur = [i]
+        for j, cb in enumerate(b, 1):
+            cur.append(min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (ca != cb)))
+        prev = cur
+    return prev[-1]
+
+
+def _spelling_errors(find_txt: str, rep_txt: str) -> list[str]:
+    a, b = _WORDS.findall(find_txt), _WORDS.findall(rep_txt)
+    if len(a) != len(b):
+        return [f"spelling edit changes the number of words ({len(a)} -> {len(b)})"]
+    changed = [(x, y) for x, y in zip(a, b) if x != y]
+    errs = []
+    if not changed:
+        errs.append("spelling edit changes no word")
+    if len(changed) > SPELLING_MAX_WORDS_CHANGED:
+        errs.append(f"spelling edit changes {len(changed)} words (max {SPELLING_MAX_WORDS_CHANGED})")
+    for x, y in changed:
+        d = _lev(x.lower(), y.lower())
+        if x.lower() == y.lower():
+            continue  # capitalisation only
+        if d > 2 or d > max(1, len(x) // 3):
+            errs.append(f"spelling edit rewrites a word ('{x}' -> '{y}', {d} letter edits): not a typo fix")
+        if x.lower() in _MEANING_CRITICAL or y.lower() in _MEANING_CRITICAL:
+            errs.append(f"spelling edit touches a meaning-critical word ('{x}' -> '{y}')")
+    return errs
+
+
+def _deletion_errors(find_txt: str, rep_txt: str, pattern, what: str) -> list[str]:
+    if not pattern.search(find_txt):
+        return [f"deleted text contains no {what}"]
+    if _norm(pattern.sub(" ", find_txt)) != _norm(rep_txt):
+        return [f"edit deletes more than the {what}: only the {what} itself may be removed"]
+    return []
+
+
+def _answer_form_errors(find_html: str, rep_html: str) -> list[str]:
+    added = _norm(_strip_tags(rep_html.replace(find_html, " ", 1)))
+    if not added:
+        return ["answer_form edit adds nothing"]
+    if not _ANSWER_FORM_ADDITION.match(added) or _OPTION_LETTER_UNIT.search(added):
+        return [f"answer_form may only add a unit or rounding instruction, not {added!r}"]
+    return []
+
+
+def _letters(t: str) -> list[str]:
+    return [w.lower() for w in _WORDS.findall(t)]
+
+
+def _new_numbers(find_txt: str, rep_txt: str) -> set[str]:
+    num = re.compile(r"\d+(?:\.\d+)?")
+    return set(num.findall(rep_txt)) - set(num.findall(find_txt))
+
+
 def apply_edit(q: dict, edit: Edit) -> dict:
     """Return a NEW question dict with the edit applied (input untouched)."""
     nq = copy.deepcopy(q)
@@ -151,12 +245,19 @@ def check_edit(q: dict, repair: str, edit: Edit | dict | None) -> GuardResult:
             errs.append("spelling edit changes markup")
         if re.sub(r"[A-Za-z\s’'\-]", "", find_txt) != re.sub(r"[A-Za-z\s’'\-]", "", rep_txt):
             errs.append("spelling edit changes symbols")
+        errs += _spelling_errors(find_txt, rep_txt)
     elif repair in ("noise", "exam_reference"):
         if not _is_subsequence(rep_txt, find_txt) or len(rep_txt) >= len(find_txt):
             errs.append(f"{repair} edit must only delete stray text")
+        if repair == "exam_reference":
+            errs += _deletion_errors(find_txt, rep_txt, _EXAM_TAG, "exam reference tag")
+        else:
+            errs += _deletion_errors(find_txt, rep_txt, _NOISE, "noise (question number, rough-work note, source label, URL)")
     elif repair == "answer_form":
         if edit.find not in edit.replace:
             errs.append("answer_form is additive only: replace must contain find verbatim")
+        else:
+            errs += _answer_form_errors(edit.find, edit.replace)
     elif repair == "markup_leak":
         if not (_LATEX_CMD.search(edit.find) or "&lt;" in edit.find or "$" in edit.find):
             errs.append("markup_leak find contains no raw LaTeX/HTML")
@@ -164,9 +265,18 @@ def check_edit(q: dict, repair: str, edit: Edit | dict | None) -> GuardResult:
             errs.append("markup_leak replace still contains raw LaTeX")
         if Counter(_DIGITS.findall(find_txt)) != Counter(_DIGITS.findall(_strip_tags(edit.replace))):
             errs.append("markup_leak edit changes numbers")
+        if _letters(_LATEX_CMD.sub(" ", find_txt.replace("&lt;", "<"))) != _letters(_strip_tags(edit.replace)):
+            errs.append("markup_leak edit changes the words around the markup")
+    elif repair == "notation":
+        if _letters(find_txt) != _letters(rep_txt):
+            errs.append("notation edit changes words (only symbols, brackets and exponents may change)")
+        if Counter(_DIGITS.findall(find_txt)) != Counter(_DIGITS.findall(rep_txt)):
+            errs.append("notation edit changes numbers")
     elif repair == "stem_data":
         if edit.field != "question":
             errs.append("stem_data edits the question only")
+        if not _is_subsequence(_norm(find_txt), _norm(rep_txt)):
+            errs.append("stem_data may only add the missing value/condition, not change existing text")
         new_nums = set(re.findall(r"\d+(?:\.\d+)?", rep_txt)) - set(re.findall(r"\d+(?:\.\d+)?", find_txt))
         sol_txt = N.to_text(b.get("solution", ""))
         sol_nums = set(re.findall(r"\d+(?:\.\d+)?", sol_txt))
@@ -176,6 +286,11 @@ def check_edit(q: dict, repair: str, edit: Edit | dict | None) -> GuardResult:
     elif repair in ("solution_fix", "solution_missing"):
         if edit.field != "solution":
             errs.append(f"{repair} edits the solution only")
+        known = set(re.findall(r"\d+(?:\.\d+)?", N.to_text(b.get("question", "")) + " " + N.to_text(b.get("solution", ""))
+                               + " " + N.answer_to_str(b.get("answer"))))
+        invented = sorted(x for x in _new_numbers(find_txt, rep_txt) if x not in known)
+        if invented:
+            errs.append(f"{repair} introduces number(s) {invented} found nowhere in the question, solution or key")
 
     return GuardResult(not errs, errs, edit.find, edit.replace, before_text, after_text)
 
@@ -318,6 +433,15 @@ def route(*, q: dict, verdict: str, repair: str | None, edit: Edit | None, confi
             reasons.append("new key does not match the blind solvers' answer")
         if solver_agreement.get("numeric_ok") is False:
             reasons.append("restricted evaluator did not reproduce the solvers' value")
+    if repair == "type_mismatch" and edit is not None:
+        if edit.field == "question":
+            reasons.append("type_mismatch question-text edits are authored content; faculty must review")
+        elif edit.field == "questionType":
+            ans = solver_agreement.get("answer") if solver_agreement.get("agree") else None
+            implied = (None if ans is None else "integerQuestion" if re.fullmatch(r"-?\d+(\.\d+)?", str(ans))
+                       else "mcq" if "," in str(ans) else "scq")
+            if implied != edit.replace:
+                reasons.append(f"new type {edit.replace!r} is not what both blind solvers' answers imply ({implied!r})")
     if repair == "option_repair":
         blockers = option_restore_check(q, edit, solves)
         if blockers:

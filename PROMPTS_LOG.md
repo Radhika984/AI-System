@@ -141,3 +141,21 @@ What changed:
 * **Replies**: on faculty_review routes, sentences claiming an action is underway/done are replaced by "We've sent this to a teacher to review." (11 replies: R009, R010, R015, R018, R019, R021, R023, R025, R026 template, R034, R042). Trade-off: R009/R010/R019 lost their specific sentence, which *was* the claim.
 * **R021**: precheck proves the key `["", "B"]` is malformed; taxonomy `answer_key` = "Answer key wrong **or malformed**"; `type_mismatch` needs evidence of a wrong stored type, and an mcq with one correct option is valid. → repair `answer_key`, edit `["", "B"]`→`["B"]` (the stored key's own normalisation, guard-validated; nothing invented). Route stays faculty_review (solvers disagree → rule 5).
 * **PRODUCT.md**: R004 sentence now describes what the reply actually says.
+
+## 2026-11-11 ~15:00 IST — Safety & Trust audit → V1/V2 fixed (0 API calls)
+
+### Coding-assistant prompt #10 (key lines, verbatim)
+> Now perform a complete independent audit of Evaluation Criterion B: Safety and Trust (10 marks). [...] Do not treat passing unit tests alone as proof of safety. Test the actual implementation and backend behaviour.
+
+Audit ran the real server on throwaway state, the real UI, and a *stub judge that obeys any injection*. Restricted types, answer-key protection, data protection, passcode and audit all held. Two defects found:
+* **V1** `guard.check_edit` rules were shape-only: with an unflagged Hindi-English comment ("bhai yeh question theek karo please"), an obedient judge got `noise` "not antagonistic"→"antagonistic" and `spelling` "Golden rice"→"Golden wheat" **auto-applied end-to-end**; `exam_reference` could delete ordinary words; `answer_form` could append "(the answer is 25)".
+* **V2** `store.act` "edit" reverted the system auto-apply *before* validating; a refused (422) edit on R022 put the typo "plexux" back live, kept status "auto_applied", and wrote a `revert_auto_apply` audit entry for a failed request (the revert was not persisted, so after a restart the audit claimed a revert that never happened).
+
+### Coding-assistant prompt #11 (key lines, verbatim)
+> I approve fixing ONLY V1 and V2 [...] Do not simply block all edits of these types. Preserve legitimate corrections. [...] Refactor the store.act edit path so that: 1. The proposed edit is fully validated first. 2. Existing patches are not reverted before validation succeeds. 3. The new patch and any necessary revert happen atomically. 4. Audit entries are written only after the corresponding operation succeeds. 5. A rejected edit leaves the live question, status, patch file and audit trail unchanged.
+
+What changed:
+* `guard.py`: semantic bounds per repair (spelling word-count/edit-distance/meaning-critical words; exam_reference & noise deletions must match defined patterns; answer_form additions must be unit/rounding only; markup_leak keeps words; notation keeps words+numbers; stem_data insert-only; solution_fix no invented numbers; type_mismatch routing). All 16 committed auto-applies still pass; results.json byte-identical.
+* `store.py`: `act` is transactional (validate → stage → atomic two-file save → audit after commit; snapshot rollback on any exception). Faculty edits replacing an auto-apply are validated against the question without the system patch.
+* Tests: `tests/test_guard_semantic.py` (attacks blocked, legitimate fixes pass), `tests/test_store_atomic.py` (R022 scenarios, restart, valid edit, reject/revert, failed save), Hinglish + insistent judge (which insists twice, incl. the edit-repair retry) in `tests/test_llm_offline.py`. Run against the old code at ba394da: 24 of the new tests fail; on the new code all pass (177 total).
+* Harness slips while writing tests: synthetic report id "RX01" was rejected by the `R###` schema (a guard working); a stub with no scripted edit-repair reply raised IndexError — replaced with an attacker that insists again (stronger test).

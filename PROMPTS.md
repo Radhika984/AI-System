@@ -288,7 +288,7 @@ Effect: the assistant pointed to the existing enforcement (the free-model allowl
 **Architecture**
 - **Group reports per question before judging.** Four questions have 2–3 reports, and they share a root cause. One judgement per question keeps the reports consistent, and the queue shows "3 students" as an urgency signal.
 - **Blind solvers on different models.** A solver that sees the key or the student's claim anchors on it; R004's student is confidently wrong ("8225"). Using different models makes their errors more independent. Trade-off, stated honestly: under quota pressure the judge shares a model with solver A.
-- **Deterministic code around the LLM.** The model proposes and code disposes. Precheck flags, the guard, routing and the post-rules are plain Python, with 127 pytest tests plus 18 browser end-to-end checks (`tests/e2e/run_e2e.py`). The LLM never writes to storage, and the deployed API makes **no** LLM calls, so it can't be prompt-injected at runtime.
+- **Deterministic code around the LLM.** The model proposes and code disposes. Precheck flags, the guard, routing and the post-rules are plain Python, with 177 pytest tests plus 18 browser end-to-end checks (`tests/e2e/run_e2e.py`). The LLM never writes to storage, and the deployed API makes **no** LLM calls, so it can't be prompt-injected at runtime.
 - **Rule-based overrides are visible.** Four exist:
   - verified already-fixed (R017);
   - a syllabus claim always goes to faculty (the taxonomy says "Faculty confirm");
@@ -329,6 +329,18 @@ Effect: the assistant pointed to the existing enforcement (the free-model allowl
 - Approve is the primary action and is labelled by context ("Keep fix", "Approve fix", "Confirm problem"). Keyboard shortcuts are A/E/R/J/K, and the console moves to the next case automatically after each decision.
 - Questions are rendered with native MathML through DOMPurify (HTML + MathML profiles). Inline colour styles are stripped so text stays readable.
 - If the API is unreachable, a bundled snapshot is shown in clearly labelled **read-only** mode.
+
+**Safety audit fixes (V1, V2)**
+
+An independent Safety & Trust audit simulated a *fully compromised judge*: a stub that obeys any instruction, fed a Hindi-English comment the injection detector doesn't catch. It found two latent defects. Neither appeared in the 44 results; both are fixed and regression-tested.
+
+- **V1: shape-only edit rules.** "noise" could delete *not* ("not antagonistic" → "antagonistic"), "spelling" could swap a word ("Golden rice" → "Golden wheat"), "exam_reference" could delete ordinary words, and "answer_form" could append "(the answer is 25)". All four auto-applied end-to-end.
+  - **Fix:** each auto repair is bounded to its taxonomy meaning (see README §Architecture → guard). Reviewing the other types closed the same gap in markup_leak, notation, stem_data, solution_fix and type_mismatch.
+  - **What still passes:** every legitimate fix (R012, R013, R022, R024, "Canolla", "hemispherial", units, rounding).
+  - **Evidence:** the new tests fail on the old code (24 failures) and pass now. `results.json` is byte-identical.
+- **V2: a refused faculty edit undid a live fix.** `store.act` reverted the system patch *before* validating the faculty edit. A 422 response left the typo live, the status inconsistent, and a false revert in the audit log.
+  - **Fix:** every action is now transactional. It validates first, stages changes, saves both files together, writes the audit only after commit, and rolls back on any failure.
+  - **Tests:** R022 regression tests cover invalid edits, a restart, a valid edit, a reject with revert, and a failed save.
 
 **Tried and dropped**
 - One prompt per report: dropped for per-question grouping.

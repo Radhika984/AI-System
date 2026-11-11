@@ -46,13 +46,25 @@ taxonomy.json ┘   malformed keys, missing/blank/duplicate │
 
   Integer answers must match exactly (R033: 3113 vs 3114 is a disagreement). They get only the stem and options, never the key, the stored solution or the student's comment. Each also returns one arithmetic expression, which `safe_eval.py` (an AST whitelist, never `eval`) recomputes.
 * **The judge** (`gemini-3-flash-preview`) sees one question at a time with *all* of its reports grouped. It also gets the deterministic flags, both solves, the raw HTML (for exact edit anchors) and each comment escaped inside `<student_comment>` tags, labelled as untrusted data.
-* **The guard** (`guard.py`) checks every proposed edit. The field must be in the repair's scope (from `taxonomy.json`), and `find` must occur exactly once. The edit is dry-run on a copy and re-parsed with `lxml`, and no option may be lost. Each repair type has its own rule: spelling moves letters only, `exam_reference` and `noise` only delete, `answer_form` only adds, `stem_data` values must appear in the stored solution, `option_repair` may not touch the stem and may only restore the keyed option, and no edit may introduce raw LaTeX. A failed edit gets one LLM repair attempt, which is guarded again, and is dropped if it still fails.
+* **The guard** (`guard.py`) checks every proposed edit. The field must be in the repair's scope (from `taxonomy.json`), and `find` must occur exactly once. The edit is dry-run on a copy and re-parsed with `lxml`, and no option may be lost. Each repair type is bounded to what its taxonomy label allows, so a structurally valid edit can't change academic meaning:
+  - **spelling:** same word count, at most 3 words changed, each within 2 letter edits and ≤ ⅓ of its length, and never touching meaning-critical words such as *not*, *true/false* or *increase/decrease*. "Golden rice" → "Golden wheat" is refused.
+  - **exam_reference:** the deleted text must *be* an exam tag like "(NEET 2019)".
+  - **noise:** the deleted text must be a question number, a rough-work note, a source label or a URL. Deleting "not" is refused.
+  - **answer_form:** may only add a unit or rounding instruction, with no numbers, answer text or option letters.
+  - **markup_leak:** keeps the surrounding words.
+  - **notation:** may change only symbols, brackets and exponents.
+  - **stem_data:** may only add, and only values the solution states.
+  - **solution_fix:** may not introduce numbers found nowhere in the question, solution or key.
+  - **option_repair:** may only restore the keyed option.
+  - **type_mismatch:** auto-applies only as a type change consistent with both blind solvers.
+  - **No edit** may introduce raw LaTeX. A failed edit gets one LLM repair attempt, which is guarded again, and is dropped if it still fails.
 * **Routing** is deterministic code ([SPEC §3](SPEC.md)), not the model. A non-defect becomes `no_change`. An `auto:false` repair goes to `faculty_review` with `edit: null`. An `auto:true` repair is auto-applied only if:
   - the guard passes, and confidence is at least 0.85
   - no report on that question carries an injection flag
   - for answer keys: both solvers agree on the new key, the arithmetic re-check passes, and the subject is computational (biology keys always go to faculty)
   - the two blind solvers don't disagree: a disagreement caps confidence at 0.7, which sends defects to faculty and marks no-change cases "AI unsure" (SPEC §3 rule 5)
 * **Patch layer.** `data/` is never written; it's read-only and SHA-256 pinned in tests. Approved and auto-applied edits live in `state/patches.json`. Every action (auto-apply, approve, edit, reject, revert, reopen) appends to `state/audit.jsonl` with the actor, timestamp and before/after values.
+* **Faculty actions are transactional.** Each action is validated first, then all changes are staged and both state files are saved, and only then is the audit entry written. A refused request (for example an invalid edit on an auto-applied case) leaves the live question, status, patch file and audit log exactly as they were, including after a restart.
 
 ### Faculty console
 
@@ -74,7 +86,7 @@ Requires Python 3.10+ and Node 18+.
 
 ```bash
 pip install -r backend/requirements.txt
-python -m pytest -q tests                  # 127 deterministic, offline-stub, API and security tests; no API key needed
+python -m pytest -q tests                  # 177 deterministic, offline-stub, API and security tests; no API key needed
 
 # API (serves the committed results.json; no LLM key needed).
 # Faculty actions need a reviewer passcode, read from the environment only (see "Reviewer access").

@@ -56,9 +56,13 @@ class Store:
             return copy.deepcopy(default)
 
     def _save(self):
+        """Write both state files to temp files first, then swap them in (no half-written state)."""
+        staged = []
         for path, obj in ((self._patches_path, self.patches), (self._status_path, self.status)):
             tmp = path.with_suffix(".tmp")
             tmp.write_text(json.dumps(obj, indent=1, ensure_ascii=False), encoding="utf-8")
+            staged.append((tmp, path))
+        for tmp, path in staged:
             tmp.replace(path)
 
     # ------------------------------------------------------------ grouping
@@ -68,10 +72,12 @@ class Store:
             g.setdefault(r["questionId"], []).append(r)
         return g
 
-    def live_question(self, qid: str) -> dict:
+    def live_question(self, qid: str, exclude_actor: str | None = None) -> dict:
+        """Original + active patches. `exclude_actor` previews the question without that actor's
+        patches (used to validate a faculty edit that would replace the system auto-apply)."""
         q = self.questions[qid]
         for p in self.patches.get(qid, []):
-            if not p.get("reverted"):
+            if not p.get("reverted") and p["actor"] != exclude_actor:
                 q = G.apply_edit(q, Edit(**p["edit"]))
         return q
 
@@ -95,14 +101,18 @@ class Store:
                 self.status[qid] = {"state": "auto_applied", "at": _now(), "by": SYSTEM_ACTOR}
             self._save()
 
-    def _apply_patch(self, qid, edit: dict, actor, action, report_ids, q_before, note=""):
+    def _stage_patch(self, qid, edit: dict, actor, action, report_ids, q_before, note="") -> dict:
+        """Add a patch in memory and return the audit record to write once the action commits."""
         q_after = G.apply_edit(q_before, Edit(**edit))
         fb = edit["field"]
         before = N.body(q_before).get(fb) if fb != "questionType" else q_before["questionType"]
         after = N.body(q_after).get(fb) if fb != "questionType" else q_after["questionType"]
         self.patches.setdefault(qid, []).append({"edit": edit, "actor": actor, "at": _now(), "action": action})
-        self.audit.append(actor=actor, action=action, question_id=qid, report_ids=report_ids,
-                          before=before, after=after, edit=edit, note=note)
+        return dict(actor=actor, action=action, question_id=qid, report_ids=report_ids,
+                    before=before, after=after, edit=edit, note=note)
+
+    def _apply_patch(self, qid, edit: dict, actor, action, report_ids, q_before, note=""):
+        self.audit.append(**self._stage_patch(qid, edit, actor, action, report_ids, q_before, note))
 
     # ------------------------------------------------------------ views
     def case_summary(self, qid: str, rows: list[dict]) -> dict:
@@ -207,6 +217,9 @@ class Store:
 
     # ------------------------------------------------------------ actions
     def act(self, qid: str, action: str, actor: str, note: str = "", edit: dict | None = None) -> dict:
+        """Transactional: validate first, stage every change in memory, save state, and only then
+        write audit entries. Any failure restores the previous in-memory state, so a refused request
+        leaves the live question, status, patch file and audit trail exactly as they were."""
         actor = (actor or "").strip()[:60] or "faculty"
         with self._lock:
             rows = self.groups().get(qid)
@@ -216,49 +229,60 @@ class Store:
             st = self.status.get(qid, {"state": "pending"})
             proposed = next((r["edit"] for r in rows if r.get("edit")), None)
             q_live = self.live_question(qid)
+            snapshot = (copy.deepcopy(self.patches), copy.deepcopy(self.status))
+            pending_audit: list[dict] = []
+            try:
+                if action == "approve":
+                    if st["state"] in ("approved", "edited"):
+                        raise ValueError(f"case already {st['state']}")
+                    if proposed and st["state"] != "auto_applied":
+                        g = G.check_faculty_edit(q_live, proposed)
+                        if not g.ok:
+                            raise ValueError("proposed edit no longer valid: " + "; ".join(g.errors))
+                        pending_audit.append(self._stage_patch(qid, proposed, actor, "approve", rids, q_live, note))
+                    else:
+                        pending_audit.append(dict(actor=actor, action="approve", question_id=qid, report_ids=rids,
+                                                  before=st["state"], after="approved", note=note or "verdict confirmed"))
+                    self.status[qid] = {"state": "approved", "at": _now(), "by": actor}
 
-            if action == "approve":
-                if st["state"] in ("approved", "edited"):
-                    raise ValueError(f"case already {st['state']}")
-                if proposed and st["state"] != "auto_applied":
-                    g = G.check_faculty_edit(q_live, proposed)
+                elif action == "edit":
+                    if not edit:
+                        raise ValueError("edit action needs an edit {field, find, replace}")
+                    new_edit = Edit(**edit).model_dump()  # schema check (ValidationError is a ValueError)
+                    replacing_auto = st["state"] == "auto_applied"
+                    # 1. validate against the question as it will be once the system patch is replaced
+                    base = self.live_question(qid, exclude_actor=SYSTEM_ACTOR) if replacing_auto else q_live
+                    g = G.check_faculty_edit(base, new_edit)
                     if not g.ok:
-                        raise ValueError("proposed edit no longer valid: " + "; ".join(g.errors))
-                    self._apply_patch(qid, proposed, actor, "approve", rids, q_live, note)
+                        raise ValueError("; ".join(g.errors))
+                    # 2. only now stage the revert + the new patch (committed together below)
+                    if replacing_auto:
+                        pending_audit += self._stage_revert_system_patch(qid, actor, rids)
+                    pending_audit.append(self._stage_patch(qid, new_edit, actor, "edit", rids, base, note))
+                    self.status[qid] = {"state": "edited", "at": _now(), "by": actor}
+
+                elif action == "reject":
+                    if st["state"] == "auto_applied":
+                        pending_audit += self._stage_revert_system_patch(qid, actor, rids)
+                    pending_audit.append(dict(actor=actor, action="reject", question_id=qid, report_ids=rids,
+                                              before=st["state"], after="rejected", note=note or "AI suggestion rejected"))
+                    self.status[qid] = {"state": "rejected", "at": _now(), "by": actor}
+
+                elif action == "reopen":
+                    for p in self.patches.get(qid, []):
+                        if not p.get("reverted") and p["actor"] != SYSTEM_ACTOR:
+                            p["reverted"] = True
+                    pending_audit.append(dict(actor=actor, action="reopen", question_id=qid, report_ids=rids,
+                                              before=st["state"], after="pending", note=note))
+                    self.status[qid] = {"state": "pending", "at": _now(), "by": actor}
                 else:
-                    self.audit.append(actor=actor, action="approve", question_id=qid, report_ids=rids,
-                                      before=st["state"], after="approved", note=note or "verdict confirmed")
-                self.status[qid] = {"state": "approved", "at": _now(), "by": actor}
-
-            elif action == "edit":
-                if not edit:
-                    raise ValueError("edit action needs an edit {field, find, replace}")
-                if st["state"] == "auto_applied":  # replace the system patch with the faculty one
-                    self._revert_system_patch(qid, actor, rids)
-                    q_live = self.live_question(qid)
-                g = G.check_faculty_edit(q_live, edit)
-                if not g.ok:
-                    raise ValueError("; ".join(g.errors))
-                self._apply_patch(qid, Edit(**edit).model_dump(), actor, "edit", rids, q_live, note)
-                self.status[qid] = {"state": "edited", "at": _now(), "by": actor}
-
-            elif action == "reject":
-                if st["state"] == "auto_applied":
-                    self._revert_system_patch(qid, actor, rids)
-                self.audit.append(actor=actor, action="reject", question_id=qid, report_ids=rids,
-                                  before=st["state"], after="rejected", note=note or "AI suggestion rejected")
-                self.status[qid] = {"state": "rejected", "at": _now(), "by": actor}
-
-            elif action == "reopen":
-                for p in self.patches.get(qid, []):
-                    if not p.get("reverted") and p["actor"] != SYSTEM_ACTOR:
-                        p["reverted"] = True
-                self.audit.append(actor=actor, action="reopen", question_id=qid, report_ids=rids,
-                                  before=st["state"], after="pending", note=note)
-                self.status[qid] = {"state": "pending", "at": _now(), "by": actor}
-            else:
-                raise ValueError(f"unknown action {action!r}")
-            self._save()
+                    raise ValueError(f"unknown action {action!r}")
+                self._save()
+            except Exception:
+                self.patches, self.status = snapshot  # roll back every staged change
+                raise
+            for rec in pending_audit:  # the action is committed: now (and only now) record it
+                self.audit.append(**rec)
             return self.case(qid)
 
     def reset_demo(self, actor: str, note: str = "") -> dict:
@@ -284,9 +308,12 @@ class Store:
             return {"reset_at": entry["at"], "archived": f"state/archive/{stamp}", "files": moved,
                     "auto_applied_again": sum(1 for s in self.status.values() if s.get("state") == "auto_applied")}
 
-    def _revert_system_patch(self, qid, actor, rids):
+    def _stage_revert_system_patch(self, qid, actor, rids) -> list[dict]:
+        """Mark the system auto-apply patch reverted in memory; return audit records for commit."""
+        recs = []
         for p in self.patches.get(qid, []):
             if p["actor"] == SYSTEM_ACTOR and not p.get("reverted"):
                 p["reverted"] = True
-                self.audit.append(actor=actor, action="revert_auto_apply", question_id=qid, report_ids=rids,
-                                  before=p["edit"].get("replace"), after=p["edit"].get("find"), edit=p["edit"])
+                recs.append(dict(actor=actor, action="revert_auto_apply", question_id=qid, report_ids=rids,
+                                 before=p["edit"].get("replace"), after=p["edit"].get("find"), edit=p["edit"]))
+        return recs

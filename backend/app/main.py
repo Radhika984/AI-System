@@ -7,6 +7,7 @@ calls, so it costs nothing to keep online and cannot be prompt-injected at runti
 from __future__ import annotations
 
 import json
+import logging
 from typing import Literal, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query
@@ -18,7 +19,9 @@ from pydantic import BaseModel, ConfigDict, Field
 from . import config
 from .models import Edit
 from .security import require_admin, require_reviewer, writes_enabled
-from .store import Store
+from .store import StateFileError, Store
+
+_log = logging.getLogger("uvicorn.error")
 
 app = FastAPI(title="Acadza Report->Fix console API", version="1.0.0")
 app.add_middleware(
@@ -78,9 +81,15 @@ _store: Store | None = None
 
 
 def store() -> Store:
+    """Lazily load the store. A damaged state file fails closed: every request gets a 503 that says
+    which file is damaged, and nothing is written, until the file is restored and the server restarted."""
     global _store
     if _store is None:
-        _store = Store()
+        try:
+            _store = Store()
+        except StateFileError as e:
+            _log.error("%s", e)
+            raise HTTPException(503, str(e))
     return _store
 
 

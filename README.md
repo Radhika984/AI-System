@@ -88,7 +88,7 @@ Requires Python 3.10+ and Node 18+.
 
 ```bash
 pip install -r backend/requirements.txt
-python -m pytest -q tests                  # 199 deterministic, offline-stub, API and security tests; no API key needed
+python -m pytest -q tests                  # 228 deterministic, offline-stub, API and security tests; no API key needed
 
 # API (serves the committed results.json; no LLM key needed).
 # Faculty actions need a reviewer passcode, read from the environment only (see "Reviewer access").
@@ -97,6 +97,16 @@ cd backend && REVIEWER_PASSCODE='<choose one>' uvicorn app.main:app --port 8000
 # Console (in another terminal; proxies /api to :8000)
 cd frontend && npm ci && npm run dev       # http://localhost:5173
 ```
+
+On Windows (PowerShell), set environment variables with `$env:` instead of the `NAME=value command` prefix:
+
+```powershell
+cd backend; $env:REVIEWER_PASSCODE = '<choose one>'; uvicorn app.main:app --port 8000
+cd frontend; npm ci; npm run dev
+$env:LLM_OFFLINE = '1'; python scripts/run_triage.py --all     # offline replay (see below)
+```
+
+**Read endpoints** (public, no passcode): `GET /health` (status, result and case counts, whether faculty actions are enabled), `GET /api/queue` (one entry per reported question, in urgency order), `GET /api/cases/{questionId}` (full case: verdicts, evidence, diff, replies, patches, audit), `GET /api/audit?questionId=` (audit log, newest first; all questions if omitted). FastAPI's interactive docs are at `/docs`. The write endpoints are described under "Reviewer access" below.
 
 ### Re-running the triage engine (optional, free tier)
 
@@ -117,7 +127,10 @@ python scripts/build_snapshot.py           # refresh the console's read-only fal
 | `SOLVER_BATCH_SIZE`, `JUDGE_BATCH_SIZE` | Questions per call (free tier = 20 requests/day/model). |
 | `LLM_MIN_INTERVAL_S`, `LLM_TIMEOUT_S`, `LLM_MAX_RETRIES` | Pacing, timeout and backoff settings. |
 | `LLM_OFFLINE=1` | Cache-only replay; any cache miss is an error, so the API is never called. |
+| `LLM_PROVIDER` | LLM provider for the triage engine. Default `gemini`, the only configured provider. |
 | `CORS_ORIGINS`, `STATE_DIR` | API server settings. |
+| `TRUSTED_PROXIES` | Comma-separated IPs or CIDR ranges of reverse proxies in front of the API. Only requests arriving *from* these addresses have their `X-Forwarded-For` header used to identify the client for rate limiting. Default empty: the header is ignored and the direct peer address is used. Behind a proxy, set it to the proxy's range, or every client shares one rate-limit bucket. |
+| `API_PROXY` | Vite dev/preview server only: where `/api` and `/health` are proxied. Default `http://127.0.0.1:8000`. |
 | `REVIEWER_PASSCODE` | Shared passcode for approve, edit and reject (header `X-Reviewer-Passcode`). Set only in the server environment. If unset, faculty actions are **disabled**. |
 | `ADMIN_RESET_TOKEN` | Separate token for `POST /api/admin/reset` (header `X-Admin-Token`). If unset, or equal to the passcode, the endpoint doesn't exist (404). |
 
@@ -146,6 +159,8 @@ python scripts/build_snapshot.py           # refresh the console's read-only fal
   - Edit `find` is limited to 2,000 characters and `replace` to 4,000.
   - Unknown fields in an action, an edit or a reset get a 422.
   - Reverted patches aren't sent to reviewers; the audit log keeps the full history.
+* **One decision per case.** Approve, edit and reject are refused (422) on a case that is already approved, edited or rejected; reopen it first (reopen undoes faculty patches). Reopen is only accepted for decided cases. A refused action changes nothing and writes no audit entry.
+* **Damaged state files fail closed.** If `state/patches.json` or `state/case_status.json` exists but is empty, truncated or not a JSON object, the API answers every request with a 503 naming the file and writes nothing, so decisions are never silently dropped or overwritten. Restore the file (or move it aside to start fresh) and restart. A missing file is simply a fresh state.
 * **Restoring a clean demo state** (for example before a recording, or after visitors have clicked around). There are two ways:
   - `POST /api/admin/reset` with header `X-Admin-Token: <ADMIN_RESET_TOKEN>`. It doesn't exist unless that variable is set, the reviewer passcode is not accepted, and it's hidden from the OpenAPI schema.
   - Or, from a shell on the server: `python scripts/reset_demo_state.py --note "before demo"`.
@@ -161,7 +176,7 @@ python scripts/build_snapshot.py           # refresh the console's read-only fal
 ```bash
 pip install playwright==1.48.0 && python -m playwright install chromium
 cd frontend && npm ci && cd ..
-python tests/e2e/run_e2e.py      # 18 checks; screenshots go to tests/e2e/out/ (gitignored)
+python tests/e2e/run_e2e.py      # 24 checks; screenshots go to tests/e2e/out/ (gitignored)
 ```
 
 The runner is self-contained. It starts the API on a throwaway `STATE_DIR` with a random passcode, starts Vite, and drives headless Chromium through these checks:

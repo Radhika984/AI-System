@@ -52,6 +52,10 @@ export async function getQueue() {
     return q
   } catch (e) {
     if (e.status && e.status < 500) throw e
+    // The read-only snapshot is only for an API that is unreachable when the console first loads.
+    // Once live, a failed refresh is reported as an error: falling back here would silently swap in
+    // stale snapshot data that does not show the decisions just saved.
+    if (mode === 'live') throw e
     const s = await loadSnapshot()
     mode = 'snapshot'
     return s.queue
@@ -92,7 +96,7 @@ export function setPasscode(v) {
 
 export async function postAction(id, payload) {
   if (mode === 'snapshot') throw new Error('Read-only snapshot mode: actions are disabled')
-  if (!passcode) throw new Error('Enter the reviewer passcode (top right) to approve, edit or reject.')
+  if (!passcode) throw new Error('Enter the reviewer passcode in the page header to approve, edit or reject.')
   try {
     return await fetchJson(`/api/cases/${id}/actions`, {
       method: 'POST',

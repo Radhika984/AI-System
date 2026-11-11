@@ -21,6 +21,12 @@ from .audit import AuditLog
 from .models import Edit
 
 SYSTEM_ACTOR = "system:auto_apply"
+DECIDED = ("approved", "edited", "rejected")  # faculty decisions; a new decision needs a reopen first
+
+
+class StateFileError(RuntimeError):
+    """A state file exists but cannot be read. The store refuses to start rather than treat
+    it as empty, so existing faculty decisions are never silently dropped or overwritten."""
 
 
 def _now() -> str:
@@ -42,8 +48,8 @@ class Store:
         self.details = self._load_json(self.details_path, {})
         self._patches_path = self.state_dir / "patches.json"
         self._status_path = self.state_dir / "case_status.json"
-        self.patches: dict[str, list[dict]] = self._load_json(self._patches_path, {})
-        self.status: dict[str, dict] = self._load_json(self._status_path, {})
+        self.patches: dict[str, list[dict]] = self._load_state(self._patches_path)
+        self.status: dict[str, dict] = self._load_state(self._status_path)
         if bootstrap_auto_apply:
             self._bootstrap_auto_apply()
 
@@ -54,6 +60,26 @@ class Store:
             return json.loads(Path(p).read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             return copy.deepcopy(default)
+
+    @staticmethod
+    def _load_state(p: Path) -> dict:
+        """Faculty state (patches / case status). A missing file is a fresh state; a file that exists
+        but is empty, truncated, not JSON or not an object is an error. Nothing is written."""
+        p = Path(p)
+        if not p.exists():
+            return {}
+        try:
+            obj = json.loads(p.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError) as e:
+            raise StateFileError(
+                f"State file {p} exists but could not be read ({type(e).__name__}: {e}). Faculty decisions were "
+                f"not loaded and nothing was overwritten. Restore the file (or move it aside to start fresh), "
+                f"then restart the server.") from e
+        if not isinstance(obj, dict):
+            raise StateFileError(
+                f"State file {p} must contain a JSON object but contains {type(obj).__name__}. Faculty decisions "
+                f"were not loaded and nothing was overwritten. Restore the file, then restart the server.")
+        return obj
 
     def _save(self):
         """Write both state files to temp files first, then swap them in (no half-written state)."""
@@ -277,9 +303,13 @@ class Store:
             snapshot = (copy.deepcopy(self.patches), copy.deepcopy(self.status))
             pending_audit: list[dict] = []
             try:
+                # Decision-state rules: one decision per case until it is reopened; only a decided case
+                # can be reopened. Refused before anything is staged, so no state or audit changes.
+                if action in ("approve", "edit", "reject") and st["state"] in DECIDED:
+                    raise ValueError(f"case already {st['state']}; reopen it before making a new decision")
+                if action == "reopen" and st["state"] not in DECIDED:
+                    raise ValueError(f"case is {st['state'].replace('_', '-')}, not decided; there is nothing to reopen")
                 if action == "approve":
-                    if st["state"] in ("approved", "edited"):
-                        raise ValueError(f"case already {st['state']}")
                     if proposed and st["state"] != "auto_applied":
                         g = G.check_faculty_edit(q_live, proposed)
                         if not g.ok:

@@ -30,8 +30,14 @@ const ACTION_LABEL = {
 
 function AuditDrawer({ open, onClose }) {
   const [rows, setRows] = useState(null)
+  const [loadErr, setLoadErr] = useState('')
   useEffect(() => {
-    if (open) getAudit().then(setRows).catch(() => setRows([]))
+    if (!open) return
+    setRows(null)
+    setLoadErr('')
+    getAudit()
+      .then(setRows)
+      .catch((e) => setLoadErr(e.message || 'request failed'))
   }, [open])
   useEffect(() => {
     if (!open) return
@@ -53,7 +59,12 @@ function AuditDrawer({ open, onClose }) {
             <Icon name="x" className="h-4 w-4" />
           </button>
         </div>
-        {rows === null ? (
+        {loadErr ? (
+          <p role="alert" className="flex items-start gap-2 rounded-md bg-errbg px-3 py-2 text-[13px] font-medium text-err">
+            <Icon name="alert" className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>Couldn't load the audit log ({loadErr}). Close and reopen it to try again.</span>
+          </p>
+        ) : rows === null ? (
           <p className="text-sm text-muted">Loading…</p>
         ) : rows.length === 0 ? (
           <p className="text-sm text-muted">No actions recorded yet.</p>
@@ -182,7 +193,7 @@ export default function App() {
 
   useEffect(() => {
     if (!toast) return
-    const t = setTimeout(() => setToast(''), 2600)
+    const t = setTimeout(() => setToast(''), toast.length > 60 ? 7000 : 2600) // longer messages carry a warning
     return () => clearTimeout(t)
   }, [toast])
 
@@ -206,10 +217,24 @@ export default function App() {
     setBusy(true)
     setActionErr('')
     try {
-      const updated = await postAction(selected, { actor: actor || 'faculty', ...payload })
+      let updated
+      try {
+        updated = await postAction(selected, { actor: actor || 'faculty', ...payload })
+      } catch (e) {
+        setActionErr(e.message) // the server refused or was unreachable: nothing was saved
+        return false
+      }
+      // Saved. From here on the decision counts as done, whatever happens to the queue refresh,
+      // so the confirmation closes and nothing invites a second submit of the same decision.
       setCurrent(updated)
       setToast(DONE_MSG[payload.action] || 'Saved.')
-      const q = await refreshQueue()
+      let q
+      try {
+        q = await refreshQueue()
+      } catch {
+        setToast(`${DONE_MSG[payload.action] || 'Saved.'} The queue could not be refreshed; reload the page to update it.`)
+        return true
+      }
       if (payload.action !== 'reopen') {
         const ordered = displayOrder(q)
         const idx = ordered.findIndex((c) => c.questionId === selected)
@@ -217,9 +242,6 @@ export default function App() {
         if (next && next.questionId !== selected) setTimeout(() => select(next.questionId), 700)
       }
       return true
-    } catch (e) {
-      setActionErr(e.message)
-      return false
     } finally {
       inFlight.current = false
       setBusy(false)

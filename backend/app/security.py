@@ -12,6 +12,7 @@ closed) rather than open. Repeated failures from one client are rate-limited.
 from __future__ import annotations
 
 import hmac
+import ipaddress
 import os
 import threading
 import time
@@ -25,10 +26,40 @@ _failures: dict[str, list[float]] = {}
 _lock = threading.Lock()
 
 
+def _trusted_proxies() -> list:
+    """TRUSTED_PROXIES (env, read per request like the secrets): comma-separated IPs or CIDR ranges of
+    reverse proxies in front of this server. Empty (the default) = trust no forwarded headers."""
+    nets = []
+    for part in os.environ.get("TRUSTED_PROXIES", "").split(","):
+        try:
+            if part.strip():
+                nets.append(ipaddress.ip_network(part.strip(), strict=False))
+        except ValueError:
+            continue  # a malformed entry is ignored, never treated as "trust everything"
+    return nets
+
+
+def _in(ip: str, nets: list) -> bool:
+    try:
+        addr = ipaddress.ip_address(ip)
+    except ValueError:
+        return False
+    return any(addr in n for n in nets)
+
+
 def _client_key(request: Request) -> str:
-    # Render/Vercel put the real client first in X-Forwarded-For.
-    fwd = request.headers.get("x-forwarded-for", "")
-    return (fwd.split(",")[0].strip() if fwd else "") or (request.client.host if request.client else "unknown")
+    """Rate-limit identity. X-Forwarded-For is client-controlled, so it is used only when the direct
+    peer is a configured trusted proxy; then the right-most address that is not a trusted proxy is the
+    client. Otherwise the direct peer address is used, and a spoofed header changes nothing."""
+    direct = request.client.host if request.client else "unknown"
+    nets = _trusted_proxies()
+    if not nets or not _in(direct, nets):
+        return direct
+    hops = [h.strip() for h in request.headers.get("x-forwarded-for", "").split(",") if h.strip()]
+    for hop in reversed(hops):
+        if not _in(hop, nets):
+            return hop
+    return direct
 
 
 def _check_rate(key: str) -> None:

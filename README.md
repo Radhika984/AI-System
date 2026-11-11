@@ -13,7 +13,7 @@ Students tap **Report error** and type whatever they feel like. This system deci
 | Spec, routing rules, traceability | [`SPEC.md`](SPEC.md) |
 | Bonus: unreported defects | [`bonus_findings.json`](bonus_findings.json) |
 | Submission outcome | 44 reports: **16** auto-applied, **11** sent to faculty review, **17** no change. 56 successful Gemini free-tier calls in total (rate-limited attempts that failed aren't counted), ₹0. See [`artifacts/README.md`](artifacts/README.md) for which files are submission and which are historical. |
-| Live console | **Not deployed yet.** After deployment this row lists the Vercel console URL and the Render API `/health` URL. Until then, run it locally (below). |
+| Live console | **Faculty console:** [https://acadza-faculty-console.vercel.app](https://acadza-faculty-console.vercel.app) · **API health:** [https://acadza-report-fix-api.onrender.com/health](https://acadza-report-fix-api.onrender.com/health) |
 
 > **Precomputed results.** The live console serves `results.json`, which was generated offline with **Google AI Studio free-tier Gemini models (₹0 spent)**. The deployed API makes **no LLM calls**, so it can't run out of credits or be prompt-injected at runtime. Faculty actions (approve/edit/reject) are live and audited, and they require a **reviewer passcode** checked by the server. Without it the console is view-only; the passcode is shared privately with reviewers, never published.
 

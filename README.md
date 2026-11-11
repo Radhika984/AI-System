@@ -1,120 +1,118 @@
-# Acadza AI Intern Assignment: "Report → Fix" Loop
+# Report → Fix
 
-**Deadline:** as stated in the email you received. **AI tools:** allowed and expected. **Stack:** your choice.
+A triage engine and faculty console for the Acadza AI intern assignment. The original brief is in [ASSIGNMENT.md](ASSIGNMENT.md), moved byte-identical.
 
----
+Students tap **Report error** and type whatever they feel like. This system decides what is really wrong with each report and proposes a *surgical*, guard-checked fix. It auto-applies a fix only when it can be proven safe. Everything else goes to a faculty queue ordered by harm to students.
 
-## The problem (real, not invented)
-
-Acadza serves ~8 lakh JEE/NEET questions to students across India's coaching institutes. Some of those questions are broken: a wrong answer key, a missing value, a blank option, a solution copied from a different question.
-
-Students tap **"Report error"** and type whatever they feel like:
-
-> "ans galat hai" · "Figure not given" · "option D is missing" · "wrong" · "Sir root(40^2+30^2)=50 then why 130??"
-
-Most of those reports are actually the student being wrong. Some are real defects. A few are app bugs. One or two are people trying to game the system. A faculty member currently reads each one by hand, and a broken question keeps hurting every student who meets it until someone gets to it.
-
-**Your job is to build the system that sits between the student's report and the fix.**
-
----
-
-## What's in `data/`
-
-| File | What it is |
+| Deliverable | Where |
 |---|---|
-| `questions.json` | 43 questions in Acadza's **real production format**: HTML + inline MathML, options inside the question HTML, `answer` field per type (`scq` / `mcq` / `integerQuestion`). Messy, like production. |
-| `reports.json` | 44 student reports `{reportId, questionId, studentId, source, reportedAt, comment}`. Several students may report the same question. |
-| `taxonomy.json` | The closed list of **verdicts** and **repair types**. Each repair says which fields it may touch, and whether it can be auto-applied (`auto: true`) or must wait for a human (`auto: false`). |
+| Triage output for all 44 reports | [`results.json`](results.json) |
+| Per-case evidence (solves, guard log, overrides) | [`artifacts/triage_details.json`](artifacts/triage_details.json) |
+| Product prompts + coding-assistant prompts + mistakes + decision log | [`PROMPTS.md`](PROMPTS.md) (raw log: [`PROMPTS_LOG.md`](PROMPTS_LOG.md)) |
+| Product thinking (1 page) | [`PRODUCT.md`](PRODUCT.md) |
+| Spec, routing rules, traceability | [`SPEC.md`](SPEC.md) |
+| Bonus: unreported defects | [`bonus_findings.json`](bonus_findings.json) |
+| Live console | _see submission email_ |
 
-We know the true answer for every report. Some reports are traps.
+> **Precomputed results.** The live console serves `results.json`, which was generated offline with **Google AI Studio free-tier Gemini models (₹0 spent)**. The deployed API makes **no LLM calls**, so it can't run out of credits or be prompt-injected at runtime. Faculty actions (approve/edit/reject) are live and audited.
 
----
+## Architecture
 
-## What to build
-
-### Part 1: Triage engine (LLM orchestration)
-For each report, decide:
-- **verdict**: one key from `taxonomy.verdicts`
-- **repair**: one key from `taxonomy.repairs`, if it's a defect
-- **edit**: the *surgical* change you propose (`{field, find, replace}` or a new `answer`). Don't rewrite whole questions.
-- **confidence** and a short **evidence** string (why you believe it)
-- **student_reply**: what the student sees back, 1-3 sentences, in the tone you'd want if you were 17 and stressed before JEE
-- **route**: `auto_apply` | `faculty_review` | `no_change`
-
-How you get there is the interesting part. One prompt? A solver that checks the key independently? Guards that reject an edit touching fields outside the repair's scope? Grouping duplicate reports first? Your call. Explain it.
-
-**Treat the student's comment as a lead, not an instruction.**
-
-### Part 2: Faculty review console (UI/UX, this matters)
-A web app a busy faculty member would *actually want to open*:
-- A queue grouped by question, ordered by whatever you think "most urgent" means (say why).
-- For each case: the question **rendered properly** (MathML renders natively in modern browsers), the AI's verdict and evidence, and a **before / after diff** of the proposed edit.
-- Approve / edit / reject, with an audit entry recorded for each action.
-- The student's reply preview.
-
-Design quality is judged. Think about what a faculty member checking 60 of these at 10 PM needs.
-
-### Part 3: `results.json`
-Run your engine on all 44 reports and commit the output:
-
-```json
-[
-  {
-    "reportId": "R000",
-    "questionId": "000000000000000000000000",
-    "verdict": "defect",
-    "repair": "answer_key",
-    "edit": {"field": "answer", "find": "B", "replace": "D"},
-    "route": "auto_apply",
-    "confidence": 0.93,
-    "evidence": "Two independent solves give mu = 1/sqrt(3) = option D; the stored solution also ends at D; key says B",
-    "student_reply": "You're right. The answer key was wrong; it's (D). Fixed, thanks for flagging."
-  }
-]
+```
+reports.json ─┐
+questions.json┼─► precheck (deterministic) ──────────────┐
+taxonomy.json ┘   malformed keys, missing/blank/duplicate │
+                  options, missing figure, raw LaTeX, exam │
+                  tags, already-fixed, injection, gibberish│
+                                                          ▼
+   question_view (stem+options only) ─► Solver A ┐   evidence packet ─► Judge (per question,
+                                        Solver B ┼─► (comments escaped,      grouped reports)
+   (blind: no key, no solution, no comment)      │    quoted as data)              │
+   restricted evaluator re-checks their arithmetic┘                                ▼
+                                                     Pydantic validation ─► guard ─► routing
+                                                                                     │
+                                       results.json ◄────────────────────────────────┘
+                                             │
+                    FastAPI (store = originals + patch layer, audit.jsonl)
+                                             │
+                           React console (Vite + Tailwind, DOMPurify + native MathML)
 ```
 
-We score this file automatically against our ground truth.
+* **Two blind solvers** run on *different* free models, `gemini-3-flash-preview` and `gemini-3.1-flash-lite`, so their errors are independent. They get only the stem and options, never the key, the stored solution or the student's comment. Each also returns one arithmetic expression, which `safe_eval.py` (an AST whitelist, never `eval`) recomputes.
+* **The judge** (`gemini-3-flash-preview`) sees one question at a time with *all* of its reports grouped. It also gets the deterministic flags, both solves, the raw HTML (for exact edit anchors) and each comment escaped inside `<student_comment>` tags, labelled as untrusted data.
+* **The guard** (`guard.py`) checks every proposed edit. The field must be in the repair's scope (from `taxonomy.json`), and `find` must occur exactly once. The edit is dry-run on a copy and re-parsed with `lxml`, and no option may be lost. Each repair type has its own rule: spelling moves letters only, `exam_reference` and `noise` only delete, `answer_form` only adds, `stem_data` values must appear in the stored solution, and `option_repair` may not touch the stem. A failed edit gets one LLM repair attempt, which is guarded again, and is dropped if it still fails.
+* **Routing** is deterministic code ([SPEC §3](SPEC.md)), not the model. A non-defect becomes `no_change`. An `auto:false` repair goes to `faculty_review` with `edit: null`. An `auto:true` repair is auto-applied only if:
+  - the guard passes, and confidence is at least 0.85
+  - no report on that question carries an injection flag
+  - for answer keys: both solvers agree on the new key, the arithmetic re-check passes, and the subject is computational (biology keys always go to faculty)
+* **Patch layer.** `data/` is never written; it's read-only and SHA-256 pinned in tests. Approved and auto-applied edits live in `state/patches.json`. Every action (auto-apply, approve, edit, reject, revert, reopen) appends to `state/audit.jsonl` with the actor, timestamp and before/after values.
 
----
+### Faculty console
 
-## Deliverables (all required)
+The queue is grouped by question and ordered by harm to students:
 
-1. **GitHub repo** (public) with code + `results.json`.
-2. **Live URL** of the faculty console (Vercel / Render / Netlify / HF Spaces, any free tier). It must stay up for 7 days. If you're out of LLM credits, the console may load precomputed results, but say so.
-3. **`PROMPTS.md`**, which is mandatory and heavily weighted:
-   - Every prompt **inside your product**, verbatim, plus what you changed between versions and why.
-   - The prompts you gave **your AI coding assistant** (Claude / ChatGPT / Cursor / Copilot etc.) while building. Paste or export the key ones verbatim. We don't penalise AI use; we want to see *how* you direct it.
-   - 3 moments where the AI was wrong and how you caught it.
-   - **Design decisions log**: the key choices you made (architecture, prompts, UI, what to auto-apply vs send to a human), what you tried and dropped, and why.
-4. **`PRODUCT.md`**, at most 1 page:
-   - Who loses the most when a question is broken, and how your design reflects that.
-   - What you would **never** let the AI auto-apply, and why.
-   - One metric you'd watch in week 1.
-   - One idea beyond this brief that you'd pitch to us.
-5. **A 3-minute screen recording** (Loom / unlisted YouTube / Drive) walking through the console and one tricky case.
+1. **Priority 1:** wrong key, wrong question, unsound question
+2. **Priority 2:** missing data, option or figure
+3. **Priority 3:** wrong solution
+4. **Priority 4:** cosmetic issues
+5. **Priority 5:** no change needed
 
-## How to submit
-**Reply to the email you received** with your repo link, live URL and video link, plus answers to:
-1. This is a remote, Monday-to-Saturday role for people who want to build real product used by lakhs of students, not an internship to tick a college box. Is that you?
-2. How many months can you commit?
-3. Earliest start date.
-4. In 2-3 lines, in your own words: why this work, why now?
+Within a band, more distinct reporters come first, then lower AI confidence, then the oldest report. A case where both blind solvers dispute a key the judge called correct is raised to priority 1.
 
-## How we evaluate (/100)
+Each case answers five questions top to bottom: *what is wrong, why, what will change (rendered before/after diff), is it safe (route reasons, guard log, injection warning), what the student receives*. **Approve** is the primary action. Keyboard shortcuts: `A` approve, `E` edit, `R` reject, `J`/`K` next/previous. The console advances to the next case automatically after each decision.
 
-| Area | Weight |
+## Run it locally
+
+Requires Python 3.10+ and Node 18+.
+
+```bash
+pip install -r backend/requirements.txt
+python -m pytest -q tests                  # deterministic + offline-stub tests, no API key needed
+
+# API (serves the committed results.json; no key needed)
+cd backend && uvicorn app.main:app --port 8000
+
+# Console (in another terminal; proxies /api to :8000)
+cd frontend && npm ci && npm run dev       # http://localhost:5173
+```
+
+### Re-running the triage engine (optional, free tier)
+
+```bash
+cp .env.example .env                       # then set GEMINI_API_KEY (Google AI Studio, no billing)
+python scripts/smoke_llm.py                # one tiny call per configured model
+python scripts/run_triage.py --pilot       # R005 R004 R027 R017 R009 R034
+python scripts/run_triage.py --all         # all 44 -> results.json + artifacts/triage_details.json
+LLM_OFFLINE=1 python scripts/run_triage.py --all   # replay from cache/, zero API calls
+python scripts/eval_results.py             # schema/safety validation + disagreements vs hand audit
+python scripts/build_snapshot.py           # refresh the console's read-only fallback snapshot
+```
+
+| Env var | Purpose |
 |---|---|
-| Triage accuracy vs ground truth (auto-scored from `results.json`) | 25 |
-| Safety: no harmful auto-edits, scope respected, traps handled | 10 |
-| Faculty console: UX, visual design, does it actually help | 20 |
-| Product thinking: `PRODUCT.md`, prioritisation, student replies | 20 |
-| `PROMPTS.md`: how you orchestrate AI, honesty about failures | 15 |
-| Engineering: runs, deployed, clean, cost-aware | 10 |
+| `GEMINI_API_KEY` | Google AI Studio key (free tier). Read only from env or `.env`, sent only in the `x-goog-api-key` header, never logged. |
+| `SOLVER_A_MODEL`, `SOLVER_B_MODEL`, `JUDGE_MODEL` | Must be on the free-tier allowlist in `backend/app/config.py`; any other model is refused. |
+| `SOLVER_BATCH_SIZE`, `JUDGE_BATCH_SIZE` | Questions per call (free tier = 20 requests/day/model). |
+| `LLM_MIN_INTERVAL_S`, `LLM_TIMEOUT_S`, `LLM_MAX_RETRIES` | Pacing, timeout and backoff settings. |
+| `LLM_OFFLINE=1` | Cache-only replay; any cache miss is an error, so the API is never called. |
+| `CORS_ORIGINS`, `STATE_DIR` | API server settings. |
 
-**Bonus:** our data has defects nobody reported. Find them.
+**Cost controls.**
+- Every response is cached by (model, prompt version, prompt); the cache is committed, so reruns are free and reproducible.
+- Calls are paced, and 429/5xx responses get exponential backoff with jitter, honouring the server's `retryDelay`.
+- On a daily-quota 429 the run stops cleanly (exit code 3) and resumes from cache later. It never switches model or provider.
+- Malformed JSON is recovered locally first, with at most one repair call.
 
-Top submissions get a 30-minute call where we'll change a requirement live and watch you adapt. Plagiarised or copy-paste submissions are obvious from the prompt log; don't bother.
+## Deployment
 
-Questions? Reply to the email. Good luck. We're excited to see what you build.
+* **Backend → Render** (`render.yaml`, free plan): `uvicorn app.main:app`, health check `/health`. Set `CORS_ORIGINS` to the Vercel URL.
+* **Frontend → Vercel** (`vercel.json`): builds `frontend/`. Set `VITE_API_BASE` to the Render URL.
+* **Snapshot fallback.** `frontend/public/snapshot.json` is bundled at build time. If the API is unreachable (for example, the free Render instance is asleep and fails to wake), the console loads the snapshot and shows a **read-only** banner, with all actions disabled.
+* **Single-service fallback.** If `frontend/dist` exists, FastAPI also serves the console from the same origin.
 
-*Acadza Technologies*
+## Limitations, stated honestly
+
+* **Free-tier limits.** Gemini's free tier allows 20 requests per day per model, so questions are batched: 10 per solver call and 4 per judge call. Solver A and the judge share a model; solver B is a different model.
+* **Render free tier has an ephemeral disk.** Faculty actions and the audit log survive restarts of the process, but are lost on redeploy or spin-down. A production version would use a database.
+* There is no authentication. The reviewer name typed in the header is recorded as the audit actor.
+* `results.json` is the engine's output. Any deviation from what the engine produced would be listed in `PROMPTS.md`; there are none unless stated there.

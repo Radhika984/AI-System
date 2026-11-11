@@ -1,0 +1,52 @@
+{
+  "_about": "Defects present in the data that no student report points at. Found by manual review of every question's raw HTML plus the deterministic prechecks; each was re-verified against the stored HTML (needle counts) before listing. Suggested routes follow the same taxonomy and safety rules as results.json. results.json is NOT modified by these findings.",
+  "method": [
+    "Deterministic precheck sweep over all 43 questions (malformed keys, missing/blank/duplicate options, missing figures, raw LaTeX, exam tags).",
+    "Hand re-solve of the 4 questions with no reports (68dea87d, 68dea657, 695ede2a, 68dea6e6).",
+    "Line-by-line read of every stored question + solution for issues other than the one each student reported."
+  ],
+  "unreported_questions_checked": [
+    {"questionId": "68dea87d387eea3d0d95fbe3", "result": "no defect", "evidence": "alpha*C*V^2 + C*V = C*V0 -> V^2 + V - 30 = 0 -> V = 5 V = key A; solution consistent."},
+    {"questionId": "68dea6e6387eea3d0d95f6f8", "result": "no defect", "evidence": "x = sqrt(D(D-4f)) = sqrt(150*54) = 90 cm; m1/m2 = ((D+x)/(D-x))^2 = 16 = key."},
+    {"questionId": "68dea657387eea3d0d95f54a", "result": "defect (solution notation)", "see": "B1"},
+    {"questionId": "695ede2a88d7701e561aa9d9", "result": "possible defect (statement wording)", "see": "B2"}
+  ],
+  "findings": [
+    {"id": "B1", "questionId": "68dea657387eea3d0d95f54a", "reported": false, "verdict": "defect", "repair": "notation", "field": "solution",
+     "evidence": "Solution ends '10 D = 2 P_eqcu' and 'P_eqch = 5 D' - subscripts 'eqcu'/'eqch' are corrupted (should read P_each / 'power of each lens'). Key 5 is correct: 1/50 + 1/12.5 = 1/10 -> f_eq = 10 cm -> 10 D total -> 5 D each.",
+     "suggested_edit": {"field": "solution", "find": "<mtext> eqch </mtext>", "replace": "<mtext> each </mtext>"},
+     "suggested_route": "faculty_review", "confidence": 0.85,
+     "note": "The 'eqcu' occurrence needs a human to decide the intended symbol, so only the unambiguous 'eqch' -> 'each' is suggested."},
+    {"id": "B2", "questionId": "695ede2a88d7701e561aa9d9", "reported": false, "verdict": "defect", "repair": "solution_fix", "field": "solution",
+     "evidence": "Statement-II reads 'Sometimes dialysis is NOT a supportive measure...'. The stored solution then explains that dialysis IS used as long-term supportive therapy when transplant is infeasible and tags that sentence '(Statement-II)', which reads as if Statement-II were correct - yet the key is D (II incorrect). Key D is consistent with the literal text; the solution's wording is misleading and the statement looks altered from a source where both statements were true.",
+     "suggested_route": "faculty_review", "confidence": 0.6},
+    {"id": "B3", "questionId": "66fe9dbe22132e5a70a3e579", "reported": false, "verdict": "defect", "repair": "solution_fix", "field": "solution",
+     "evidence": "Solution states 'Insulin and glucagon work synergistically' - factually wrong (they are the textbook antagonistic pair) and contradicts the question itself, where option (B) is one of the antagonistic pairs. Key D (Relaxin-Inhibin) is correct. R035 reported the key, not this sentence.",
+     "suggested_edit": {"field": "solution", "find": "Insulin and glucagon work synergistically", "replace": "Insulin and glucagon work antagonistically"},
+     "suggested_route": "faculty_review", "confidence": 0.9, "note": "Biology content change -> faculty, per policy."},
+    {"id": "B4", "questionId": "6264197209f4fd65f58f5707", "reported": false, "verdict": "defect", "repair": "spelling", "field": "question",
+     "evidence": "Option (B) 'Canolla' -> 'Canola' (the solution itself spells it 'Canola'). R040 only said 'wrong'.",
+     "suggested_edit": {"field": "question", "find": "Canolla", "replace": "Canola"}, "suggested_route": "auto_apply", "confidence": 0.95},
+    {"id": "B5", "questionId": "61ee6c9d90a1a968a168686b", "reported": false, "verdict": "defect", "repair": "spelling", "field": "solution",
+     "evidence": "Solution: 'prominant' -> 'prominent' and 'Maceus membrane' -> 'Mucous membrane'. R022 reported only 'plexux' in the options.",
+     "suggested_edit": {"field": "solution", "find": "prominant", "replace": "prominent"}, "suggested_route": "auto_apply", "confidence": 0.95},
+    {"id": "B6", "questionId": "622df25ab70e4b50e44ff837", "reported": false, "verdict": "defect", "repair": "spelling", "field": "question",
+     "evidence": "Stem: 'hemispherial soap bubble' -> 'hemispherical'. R025 reported the missing figure only.",
+     "suggested_edit": {"field": "question", "find": "hemispherial", "replace": "hemispherical"}, "suggested_route": "auto_apply", "confidence": 0.95},
+    {"id": "B7", "questionId": "617fa18efd53ff1629ed890f", "reported": false, "verdict": "defect", "repair": "spelling", "field": "question",
+     "evidence": "Stem renders 'part ofleaf' - the space before 'leaf' is missing ('part of<span ...>leaf'). R013 reported the exam tag only.",
+     "suggested_edit": {"field": "question", "find": "expanded part of<span", "replace": "expanded part of <span"}, "suggested_route": "auto_apply", "confidence": 0.85},
+    {"id": "B8", "questionId": "6062ec84518e9535e120c422", "reported": false, "verdict": "defect", "repair": "notation", "field": "solution",
+     "evidence": "Solution units render as '/AC' and '/CC' where '/°C' is meant (degree symbol lost inside MathML). Question and key (A) are correct. R027 was an injection attempt, not a report of this.",
+     "suggested_route": "faculty_review", "confidence": 0.8},
+    {"id": "B9", "questionId": "6956d7e988d7701e5617bd3e", "reported": false, "verdict": "defect", "repair": "notation", "field": "solution",
+     "evidence": "Solution line 'pi = A x (pi/8) x cos(pi/8) x 2' has a lost bracket - should be cos((pi/8) x 2) = cos(pi/4); the next line uses cos(pi/4). Also 'v -(dx/dt)- A w cos wt' has '-' where '=' belongs. Key D (8 sqrt 2 m) is correct; R030 disputed the key, not these steps.",
+     "suggested_route": "faculty_review", "confidence": 0.8},
+    {"id": "B10", "questionId": "612151a6a34397610a9a2e58", "reported": "partly (R018/R019 reported the stray 5.47 A line)", "verdict": "defect", "repair": "solution_fix", "field": "solution",
+     "evidence": "Besides the stray '= 5.47 \\AA' fragment the students noticed, the solution writes lambda = h/|I| (I instead of p) and contains raw LaTeX '\\AA' inside MathML.",
+     "suggested_route": "faculty_review", "confidence": 0.85},
+    {"id": "B11", "questionId": "68ecbacb2ec87a18deba1ad7", "reported": "partly (R023 reported the chapter)", "verdict": "defect", "repair": "wrong_chapter", "field": null,
+     "evidence": "Besides chapter 'The Living World', the subject is 'Botany' for an action-potential (neural control, Zoology) question - the subject needs moving too.",
+     "suggested_route": "faculty_review", "confidence": 0.9}
+  ]
+}

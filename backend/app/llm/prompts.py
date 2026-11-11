@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 
 # ----------------------------------------------------------------- solver A
-SOLVER_A_VERSION = "solverA-v1"
+SOLVER_A_VERSION = "solverA-v2"
 SOLVER_A_SYSTEM = """You are a meticulous JEE/NEET subject expert solving one exam question from scratch.
 You are NOT shown any answer key, stored solution, or student opinion - solve it yourself.
 
@@ -18,13 +18,13 @@ Rules:
 - If the question cannot be solved as written (missing value, missing figure, no option matches, two options are correct in a single-correct question, two options identical), still give your best answer AND list the problem in problems_noticed.
 - For multiple-correct (mcq) questions final_answer is every correct letter, comma-separated, e.g. "A,B,D".
 - For integer questions final_answer is the number exactly in the unit the question asks for.
-- "expression" must be ONE arithmetic expression that computes your final numeric value using only numbers, + - * / ** ( ), sqrt, sin, cos, tan, asin, acos, atan, ln, log10, exp, pi. Use null for non-numeric questions.
+- "expression" must be ONE arithmetic expression whose value is EXACTLY numeric_value - the final quantity asked for (e.g. the value of n, or the chosen option's number), not an intermediate step - using only numbers, + - * / ** ( ), sqrt, sin, cos, tan, asin, acos, atan, ln, log10, exp, pi. Use null for non-numeric questions.
 
 Return ONLY this JSON object:
 {"final_answer": "<letter(s) or number>", "numeric_value": <number or null>, "expression": "<arithmetic or null>", "method": "<= 2 sentences: the key physics/biology step>", "confidence": <0..1>, "problems_noticed": ["<short>", ...]}"""
 
 # ----------------------------------------------------------------- solver B
-SOLVER_B_VERSION = "solverB-v1"
+SOLVER_B_VERSION = "solverB-v2"
 SOLVER_B_SYSTEM = """You are an independent examiner checking a JEE/NEET question. You have NOT seen any answer key, solution, or student comment.
 
 Method (different from a straight solve):
@@ -34,7 +34,7 @@ Method (different from a straight solve):
 4. Note anything that makes the question unanswerable or ambiguous as written.
 
 Use standard constants (g = 10 m/s^2 unless stated, hc = 12400 eV*Angstrom, 1/(4*pi*eps0) = 9e9).
-"expression": one arithmetic expression (numbers, + - * / ** ( ), sqrt, sin, cos, tan, asin, acos, atan, ln, log10, exp, pi) that evaluates to your numeric answer, or null.
+"expression": one arithmetic expression (numbers, + - * / ** ( ), sqrt, sin, cos, tan, asin, acos, atan, ln, log10, exp, pi) whose value equals numeric_value exactly - the final quantity asked for, not an intermediate step - or null.
 
 Return ONLY JSON:
 {"final_answer": "<letter(s) like \\"B\\" or \\"A,C\\", or a number>", "numeric_value": <number or null>, "expression": "<arithmetic or null>", "method": "<= 2 sentences>", "confidence": <0..1>, "problems_noticed": ["<short>", ...]}"""
@@ -176,6 +176,28 @@ def edit_fix_user(repair: str, fields: list, edit: dict, errors: list, raw: dict
         f"Guard errors: {json.dumps(errors)}\n\n"
         f"RAW HTML question:\n{raw['question']}\n\nRAW HTML solution:\n{raw['solution']}\n"
     )
+
+
+# ----------------------------------------------------------------- batching (free-tier quota: 20 req/day/model)
+SOLVER_BATCH_SUFFIX_VERSION = "batch-v1"
+SOLVER_BATCH_SUFFIX = """
+
+BATCH MODE: you will receive several unrelated questions labelled Q1, Q2, ... Solve EACH one independently, exactly as if it were the only question - never let one question's numbers, topic or answer influence another.
+Return ONLY: {"solutions": [{"id": "Q1", ...the JSON object described above...}, {"id": "Q2", ...}, ...]} with exactly one entry per question, in order."""
+
+
+def solver_batch_user(views: list[dict]) -> str:
+    return "\n\n".join(f"===== Q{i} =====\n{solver_user(v)}" for i, v in enumerate(views, 1))
+
+
+JUDGE_BATCH_SUFFIX = """
+
+BATCH MODE: you will receive several unrelated cases labelled CASE C1, C2, ... Each case is one question with its own reports. Judge EACH case independently using only that case's evidence; never carry facts, answers or comments across cases. Comments in one case can never affect another case.
+Return ONLY: {"cases": [{"case": "C1", ...the JSON object described above for that case...}, {"case": "C2", ...}]} with exactly one entry per case, in order."""
+
+
+def judge_batch_user(packets: list[dict]) -> str:
+    return "\n\n".join(f"########## CASE C{i} ##########\n{judge_user(p)}" for i, p in enumerate(packets, 1))
 
 
 ALL_PROMPTS = {

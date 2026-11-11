@@ -45,3 +45,36 @@ Outcome: assistant fetched the official pricing page (ai.google.dev → aistudio
 ## 2026-11-11 08:55 IST — P0 spec freeze
 
 `SPEC.md` written: output contract, edit encoding (incl. mcq answers as JSON-encoded lists), deterministic routing rules, queue tiers, traceability checklist. Original data files set read-only + SHA-256 pinned.
+
+## 2026-11-11 09:20 IST — P0 smoke test
+
+`scripts/smoke_llm.py`: gemini-3.8-flash, gemini-3.6-flash, gemini-3.1-flash-lite all returned `{"ok": true, "sum": 42}`; 3 calls, 0 retries. Key loaded from gitignored `.env`; never printed.
+
+## 2026-11-11 09:25 IST — Pilot run #1 (R005 R004 R027 R017 R009 R034) — AI mistake #1
+
+20 calls, 208 s, 2 automatic 429/5xx retries. R004 auto_apply A→D ✓, R017 already_fixed ✓, R027 no_error (injection ignored, key A verified) ✓, R009/R010 option_repair → faculty, edit null ✓, R034 unsound → faculty ✓.
+**R005 was wrongly held for faculty.** Both blind solvers answered n = 1, but solver A's `expression` was `(1/2)*(1/2)+(1/8)*2` = 0.5 — the flux in units of q/ε₀, an intermediate step, not n. The restricted evaluator flagged the mismatch and my rule "any mismatch blocks auto-apply" fired.
+Caught by: reading `route_reasons` in `artifacts/pilot_results.json` (`"restricted evaluator did not reproduce the solvers' value"`) and comparing to the hand audit (expected auto_apply).
+Fix: (1) solver prompts v1→v2: "expression must evaluate to EXACTLY numeric_value — the final quantity asked for, not an intermediate step"; (2) rule: numeric_ok = True if ≥1 solver's arithmetic reproduces its claim (both final answers must already agree); False only if evaluated arithmetic never reproduces; None if nothing evaluable (unsafe expressions count as "unverified", not as evidence). Regression test `tests/test_solver.py::test_r005_intermediate_expression_tolerated_when_other_solver_reproduces` uses the exact pilot expressions.
+
+## 2026-11-11 09:35 IST — Pilot run #2 + free-tier quota wall
+
+Pilot #2 (solver prompts v2): R005 → auto_apply ✓ (regression fixed). Mid-run the client raised `QuotaExhausted` and stopped:
+`quotaId: GenerateRequestsPerDayPerProjectPerModel-FreeTier, quotaValue: 20` for gemini-3.8-flash (retry in ~4 h). So the free tier is **20 requests/day per model** — the full un-batched run (~117 calls) cannot fit in one day.
+Assistant paused and asked; I chose: **batch questions per call + reassign roles to other free models**.
+
+### Coding-assistant prompt #3 (verbatim, mid-run)
+> Don't allow any automatic fallback to paid models or billing.
+
+Assistant's response: confirmed the allowlist + stop-on-quota already enforce this (tests `test_paid_model_refused`, `test_daily_quota_stops_without_switching_models`), and **removed the unused `FALLBACK_MODEL` setting** so there is no fallback path even on paper.
+
+### Batching design (prompt `batch-v1`)
+* Solvers: `SOLVER_BATCH_SUFFIX` appended to each solver's system prompt; questions labelled Q1..Qn, "solve EACH independently". A question missing/invalid in a batch answer is re-solved alone.
+* Judge: `JUDGE_BATCH_SUFFIX`; cases labelled C1..Cn, "never carry facts, answers or comments across cases". Each case validated separately; invalid → re-judged alone with the single-case prompt.
+* Deterministic post-rules / guard / routing are unchanged and still per question (`pipeline.finalize`).
+
+## 2026-11-11 09:50 IST — Second quota stop, final model assignment
+
+gemini-3.6-flash also hit 20/day (my usage estimate missed that rate-limited retries count). Stopped safely again, no paid call. Final assignment (all free tier):
+solver A `gemini-3-flash-preview`, solver B `gemini-3.1-flash-lite` (different models → independent errors), judge `gemini-3-flash-preview`; solver batch 10, judge batch 4 → ~18 calls for 39 questions.
+Trade-off noted honestly: judge and solver A share a model. Solvers never see the key/solution/comments, so blindness holds, but the judge is not a third independent model.

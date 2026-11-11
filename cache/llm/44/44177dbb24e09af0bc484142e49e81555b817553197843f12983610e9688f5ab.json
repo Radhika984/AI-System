@@ -1,0 +1,19 @@
+{
+ "text": "{\n  \"question_analysis\": \"The physics calculation is completely correct: v_CM = (10*14 + 4*0)/(10 + 4) = 10 m/s, which matches keyed option C. However, option (D) is entirely missing from the question HTML. Because the missing distractor cannot be inferred with certainty without authoring, it requires manual faculty input rather than an automated patch.\",\n  \"correct_answer\": \"C\",\n  \"edit\": null,\n  \"decisions\": [\n    {\n      \"reportId\": \"R010\",\n      \"verdict\": \"defect\",\n      \"repair\": \"option_repair\",\n      \"confidence\": 0.98,\n      \"evidence\": \"HTML only contains options (A), (B), and (C); option (D) is missing as flagged by pre-check and Solver A.\",\n      \"reply_if_fixed\": \"Thank you for pointing this out. Option (D) was missing and has now been restored.\",\n      \"reply_if_review\": \"Thank you for pointing this out. Option (D) is indeed missing, and our team is restoring the complete option list.\"\n    },\n    {\n      \"reportId\": \"R009\",\n      \"verdict\": \"defect\",\n      \"repair\": \"option_repair\",\n      \"confidence\": 0.98,\n      \"evidence\": \"HTML only contains options (A), (B), and (C); option (D) is missing as flagged by pre-check and Solver A.\",\n      \"reply_if_fixed\": \"Thank you for pointing this out. Option (D) was missing and has now been restored.\",\n      \"reply_if_review\": \"Thank you for pointing this out. Option (D) is indeed missing, and our team is restoring the complete option list.\"\n    }\n  ]\n}",
+ "model": "gemini-3.8-flash",
+ "prompt_version": "judge-v1",
+ "usage": {
+  "promptTokenCount": 3610,
+  "candidatesTokenCount": 416,
+  "totalTokenCount": 4680,
+  "promptTokensDetails": [
+   {
+    "modality": "TEXT",
+    "tokenCount": 3610
+   }
+  ],
+  "thoughtsTokenCount": 654,
+  "serviceTier": "standard"
+ },
+ "at": "2026-11-11T03:58:03Z"
+}

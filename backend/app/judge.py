@@ -59,19 +59,60 @@ def run_judge(packet: dict, client: LLMClient) -> tuple[JudgeOutput, dict]:
                                           prompt_version=version + ("" if attempt == 0 else "+retry"))
         meta["attempts"].append({"cached": resp.cached})
         try:
-            jo = JudgeOutput(**_coerce(data))
-            got = {d.reportId for d in jo.decisions}
-            if got != expected:
-                raise ValueError(f"decisions for {sorted(got)} but expected {sorted(expected)}")
-            for d in jo.decisions:
-                if not taxonomy.is_verdict(d.verdict):
-                    raise ValueError(f"unknown verdict {d.verdict!r}")
-                if d.verdict == "defect" and not (d.repair and taxonomy.is_repair(d.repair)):
-                    raise ValueError(f"{d.reportId}: defect needs a taxonomy repair (got {d.repair!r})")
-            return jo, meta
+            return _validate(data, expected), meta
         except (ValidationError, ValueError, TypeError) as e:
             last_err = str(e)[:500]
     raise RuntimeError(f"judge output invalid after retry: {last_err}")
+
+
+def _validate(data: dict, expected: set[str]) -> JudgeOutput:
+    jo = JudgeOutput(**_coerce(data))
+    got = {d.reportId for d in jo.decisions}
+    if got != expected:
+        raise ValueError(f"decisions for {sorted(got)} but expected {sorted(expected)}")
+    for d in jo.decisions:
+        if not taxonomy.is_verdict(d.verdict):
+            raise ValueError(f"unknown verdict {d.verdict!r}")
+        if d.verdict == "defect" and not (d.repair and taxonomy.is_repair(d.repair)):
+            raise ValueError(f"{d.reportId}: defect needs a taxonomy repair (got {d.repair!r})")
+    return jo
+
+
+def run_judge_batch(packets: list[dict], client: LLMClient, log=print) -> dict[str, tuple[JudgeOutput, dict]]:
+    """Free-tier mode: JUDGE_BATCH_SIZE cases per call. Every case is validated on
+    its own; a missing/invalid case is re-judged alone with the single-case prompt."""
+    tax = taxonomy.load()
+    system = P.judge_system(tax) + P.JUDGE_BATCH_SUFFIX
+    out: dict[str, tuple[JudgeOutput, dict]] = {}
+    size = max(1, config.JUDGE_BATCH_SIZE)
+    for i in range(0, len(packets), size):
+        chunk = packets[i:i + size]
+        try:
+            data, resp = client.complete_json(model=config.JUDGE_MODEL, system=system,
+                                              user=P.judge_batch_user(chunk),
+                                              prompt_version=P.JUDGE_VERSION + "+batch-v1")
+            cases = (data or {}).get("cases", []) or []
+        except (ValueError, TypeError) as e:
+            log(f"    judge batch failed ({str(e)[:80]})")
+            cases, resp = [], None
+        for item in cases:
+            idx = str(item.get("case", "")).lstrip("Cc")
+            if not (idx.isdigit() and 1 <= int(idx) <= len(chunk)):
+                continue
+            p = chunk[int(idx) - 1]
+            try:
+                jo = _validate(item, {r["reportId"] for r in p["reports"]})
+                out[p["question"]["_id"]] = (jo, {"model": config.JUDGE_MODEL, "batched": True,
+                                                  "cached": bool(resp and resp.cached)})
+            except (ValidationError, ValueError, TypeError) as e:
+                log(f"    judge case {p['question']['_id'][:8]} invalid in batch: {str(e)[:100]}")
+        for p in chunk:
+            qid = p["question"]["_id"]
+            if qid not in out:
+                log(f"    re-judging {qid[:8]} alone")
+                jo, meta = run_judge(p, client)
+                out[qid] = (jo, {**meta, "batched": False})
+    return out
 
 
 def _coerce(data: dict) -> dict:

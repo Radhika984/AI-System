@@ -26,6 +26,8 @@ class Stub:
 @pytest.fixture(autouse=True)
 def fast(monkeypatch):
     monkeypatch.setattr(config, "LLM_MIN_INTERVAL_S", 0)
+    monkeypatch.setattr(config, "SOLVER_BATCH_SIZE", 1)  # per-question path; batch path tested separately
+    monkeypatch.setattr(config, "JUDGE_BATCH_SIZE", 1)
     monkeypatch.setattr(C.time, "sleep", lambda s: None)
 
 
@@ -135,3 +137,28 @@ def test_pipeline_already_fixed_override(tmp_path):
     cl, _ = mk(tmp_path, [_solver("C"), _solver("C"), json.dumps(judge)])
     res, det, _ = pipeline.run(["R017"], client=cl)
     assert res[0].verdict == "already_fixed" and res[0].route == "no_change" and res[0].edit is None
+
+
+def test_batched_path_end_to_end(tmp_path, monkeypatch):
+    monkeypatch.setattr(config, "SOLVER_BATCH_SIZE", 6)
+    monkeypatch.setattr(config, "JUDGE_BATCH_SIZE", 3)
+    sol = lambda a: {"final_answer": a, "numeric_value": None, "expression": None, "method": "m",
+                     "confidence": 0.9, "problems_noticed": []}
+    solver_batch = json.dumps({"solutions": [{"id": "Q1", **sol("D")}, {"id": "Q2", **sol("A")}]})
+    dec = lambda rid, v, rep, c: {"reportId": rid, "verdict": v, "repair": rep, "confidence": c,
+                                  "evidence": "evidence text here", "reply_if_fixed": "It is fixed now, thanks.",
+                                  "reply_if_review": "A teacher is checking this now."}
+    judge_batch = json.dumps({"cases": [
+        {"case": "C1", "question_analysis": "a", "correct_answer": "D",
+         "edit": {"field": "answer", "find": "A", "replace": "D"},
+         "decisions": [dec("R004", "defect", "answer_key", 0.95)]},
+        {"case": "C2", "question_analysis": "b", "correct_answer": "A", "edit": {"field": "answer", "find": "A", "replace": "C"},
+         "decisions": [dec("R027", "no_error", None, 0.95)]},
+    ]})
+    cl, stub = mk(tmp_path, [solver_batch, solver_batch, judge_batch])
+    res, det, _ = pipeline.run(["R004", "R027"], client=cl)
+    by = {r.reportId: r for r in res}
+    assert len(stub.calls) == 3  # 2 solver batches + 1 judge batch for 2 questions
+    assert by["R004"].route == "auto_apply" and by["R027"].route == "no_change" and by["R027"].edit is None
+    for call in stub.calls[:2]:  # solvers stay blind inside a batch
+        assert "IGNORE ALL" not in call["user"] and "ans galat" not in call["user"] and "STORED_ANSWER" not in call["user"]

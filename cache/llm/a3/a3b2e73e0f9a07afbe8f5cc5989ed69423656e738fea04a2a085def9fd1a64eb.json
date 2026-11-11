@@ -1,0 +1,19 @@
+{
+ "text": "{\n  \"solutions\": [\n    {\n      \"id\": \"Q1\",\n      \"final_answer\": \"1\",\n      \"numeric_value\": 1,\n      \"expression\": \"1\",\n      \"method\": \"The enclosed charge is (q/2)/2 from the face center and (2q)/8 from the corner, giving total enclosed charge = q/2.\",\n      \"confidence\": 1.0,\n      \"problems_noticed\": []\n    },\n    {\n      \"id\": \"Q2\",\n      \"final_answer\": \"A\",\n      \"numeric_value\": 0.8,\n      \"expression\": \"0.8\",\n      \"method\": \"Using F - \\\\mu m g = m a_1 and 2F - \\\\mu m g = m a_2 with m = 100/10 = 10 kg, we solve to get \\\\mu = 0.8.\",\n      \"confidence\": 1.0,\n      \"problems_noticed\": []\n    },\n    {\n      \"id\": \"Q3\",\n      \"final_answer\": \"A\",\n      \"numeric_value\": null,\n      \"expression\": null,\n      \"method\": \"The lining of the small intestine is formed by epithelial tissue (simple columnar epithelium).\",\n      \"confidence\": 1.0,\n      \"problems_noticed\": []\n    },\n    {\n      \"id\": \"Q4\",\n      \"final_answer\": \"A\",\n      \"numeric_value\": 50,\n      \"expression\": \"sqrt(40**2 + (60 - 30)**2)\",\n      \"method\": \"Supply voltage in LCR series circuit is V = sqrt(V_R^2 + (V_L - V_C)^2).\",\n      \"confidence\": 1.0,\n      \"problems_noticed\": []\n    },\n    {\n      \"id\": \"Q5\",\n      \"final_answer\": \"D\",\n      \"numeric_value\": 4800,\n      \"expression\": \"(1/3) * (9e-2) * (400**2)\",\n      \"method\": \"Pressure exerted by gas is given by P = (1/3) \\\\rho v_{rms}^2.\",\n      \"confidence\": 1.0,\n      \"problems_noticed\": []\n    },\n    {\n      \"id\": \"Q6\",\n      \"final_answer\": \"C\",\n      \"numeric_value\": 50,\n      \"expression\": \"50\",\n      \"method\": \"Impedance Z = sqrt(R^2 + X_L^2) must be greater than or equal to R = 40 ohm, and for typical values in standard problems X_L ≈ 30 ohm, giving Z ≈ 50 ohm.\",\n      \"confidence\": 0.85,\n      \"problems_noticed\": [\n        \"Value of inductance missing in question text\"\n      ]\n    },\n    {\n      \"id\": \"Q7\",\n      \"final_answer\": \"D\",\n      \"numeric_value\": null,\n      \"expression\": null,\n      \"method\": \"For phase difference pi/2, the resultant intensity is 2*I_0, not I_0, so Assertion is false.\",\n      \"confidence\": 1.0,\n      \"problems_noticed\": []\n    },\n    {\n      \"id\": \"Q8\",\n      \"final_answer\": \"C\",\n      \"numeric_value\": 10,\n      \"expression\": \"(10 * 14) / (10 + 4)\",\n      \"method\": \"Velocity of center of mass v_cm = (m_1 v_1 + m_2 v_2) / (m_1 + m_2).\",\n      \"confidence\": 1.0,\n      \"problems_noticed\": [\n        \"Option D is truncated/missing in the source text, but option C is correct\"\n      ]\n    },\n    {\n      \"id\": \"Q9\",\n      \"final_answer\": \"C\",\n      \"numeric_value\": null,\n      \"expression\": null,\n      \"method\": \"Understory herbs and shrubs receive light that has passed through the upper canopy, which selectively absorbs red and blue light and transmits mainly green light.\",\n      \"confidence\": 1.0,\n      \"problems_noticed\": []\n    },\n    {\n      \"id\": \"Q10\",\n      \"final_answer\": \"8\",\n      \"numeric_value\": 8,\n      \"expression\": \"(1 / 5e-3) * ((1.5 - 1) * 2e-3 - (1.4 - 1) * 1.5e-3) * 100\",\n      \"method\": \"The shift of central maxima is Delta y = (D/d) * [(mu_1 - 1) t_1 - (mu_2 - 1) t_2].\",\n      \"confidence\": 1.0,\n      \"problems_noticed\": []\n    }\n  ]\n}",
+ "model": "gemini-3.6-flash",
+ "prompt_version": "solverA-v2+batch-v1",
+ "usage": {
+  "promptTokenCount": 1753,
+  "candidatesTokenCount": 1158,
+  "totalTokenCount": 6694,
+  "promptTokensDetails": [
+   {
+    "modality": "TEXT",
+    "tokenCount": 1753
+   }
+  ],
+  "thoughtsTokenCount": 3783,
+  "serviceTier": "standard"
+ },
+ "at": "2026-11-11T04:15:14Z"
+}

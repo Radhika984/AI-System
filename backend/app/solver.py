@@ -41,6 +41,48 @@ def run_solvers(view: dict, client: LLMClient) -> dict:
     return out
 
 
+def run_solvers_batch(views: list[dict], client: LLMClient, log=print) -> dict[str, dict]:
+    """Free-tier mode: each solver sees SOLVER_BATCH_SIZE questions per call (still blind).
+    A question missing/invalid in a batch answer is re-solved alone."""
+    for v in views:
+        assert "answer" not in v and "solution" not in v  # blindness invariant
+    out: dict[str, dict] = {v["_id"]: {} for v in views}
+    size = max(1, config.SOLVER_BATCH_SIZE)
+    for name, model_fn, system, version, temp in SOLVERS:
+        model = model_fn()
+        for i in range(0, len(views), size):
+            chunk = views[i:i + size]
+            got: dict[str, dict] = {}
+            try:
+                data, resp = client.complete_json(
+                    model=model, system=system + P.SOLVER_BATCH_SUFFIX, user=P.solver_batch_user(chunk),
+                    prompt_version=f"{version}+{P.SOLVER_BATCH_SUFFIX_VERSION}", temperature=temp)
+                for item in (data or {}).get("solutions", []) or []:
+                    idx = str(item.get("id", "")).lstrip("Qq")
+                    if idx.isdigit() and 1 <= int(idx) <= len(chunk):
+                        try:
+                            rec = SolverOutput(**item).model_dump()
+                            rec.update(model=resp.model, cached=resp.cached, batched=True)
+                            got[chunk[int(idx) - 1]["_id"]] = rec
+                        except (ValidationError, TypeError):
+                            pass
+            except (ValueError, TypeError) as e:
+                log(f"    solver {name} batch failed ({str(e)[:80]}); falling back to single calls")
+            for v in chunk:
+                rec = got.get(v["_id"])
+                if rec is None:  # re-solve this one question alone (same free model)
+                    try:
+                        data, resp = client.complete_json(model=model, system=system, user=P.solver_user(v),
+                                                          prompt_version=version, temperature=temp)
+                        rec = SolverOutput(**data).model_dump()
+                        rec.update(model=resp.model, cached=resp.cached, batched=False)
+                    except (ValidationError, ValueError, TypeError) as e:
+                        rec = {"error": f"invalid solver output: {str(e)[:200]}", "model": model}
+                rec["numeric_check"] = numeric_check(rec)
+                out[v["_id"]][name] = rec
+    return out
+
+
 def numeric_check(rec: dict) -> dict:
     """Re-evaluate the solver's own expression with the restricted evaluator."""
     expr = rec.get("expression")
@@ -87,9 +129,16 @@ def agreement(q: dict, solves: dict) -> dict:
     agree = len(vals) == 2 and same(qtype, vals[0], vals[1])
     agreed = vals[0] if agree else None
     checks = [v.get("numeric_check", {}).get("status") for v in solves.values()]
+    # numeric_ok: True  = at least one solver's own arithmetic, re-evaluated by the restricted
+    #                     evaluator, reproduces its claimed value (one mismatch is tolerated
+    #                     only because both final answers must also agree);
+    #             False = arithmetic was evaluated and never reproduced the claim -> blocks auto-apply;
+    #             None  = nothing evaluable (conceptual question, or expression refused as unsafe).
     numeric_ok = None
-    if any(c in ("match", "mismatch", "rejected") for c in checks):
-        numeric_ok = not any(c in ("mismatch", "rejected") for c in checks)
+    if "match" in checks:
+        numeric_ok = True
+    elif "mismatch" in checks:
+        numeric_ok = False
     return {
         "agree": agree,
         "answer": _fmt(qtype, agreed),

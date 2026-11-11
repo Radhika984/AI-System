@@ -1,0 +1,18 @@
+{
+ "text": "{\"ok\": true, \"sum\": 42}",
+ "model": "gemini-3.1-flash-lite",
+ "prompt_version": "smoke-v1",
+ "usage": {
+  "promptTokenCount": 27,
+  "candidatesTokenCount": 12,
+  "totalTokenCount": 39,
+  "promptTokensDetails": [
+   {
+    "modality": "TEXT",
+    "tokenCount": 27
+   }
+  ],
+  "serviceTier": "standard"
+ },
+ "at": "2026-11-11T03:47:44Z"
+}

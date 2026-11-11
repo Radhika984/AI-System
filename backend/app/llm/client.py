@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import random
 import re
+import sys
 import time
 from dataclasses import dataclass
 from typing import Any, Protocol
@@ -214,9 +215,11 @@ class LLMClient:
             raise OfflineMiss(f"cache miss in offline mode ({prompt_version}, {model})")
 
         delay = 4.0
+        timeouts_this_call = 0
         last_err: Exception | None = None
         for attempt in range(config.LLM_MAX_RETRIES + 1):
             self._pace()
+            print(f"    [llm] -> {model} ({prompt_version})", file=sys.stderr, flush=True)
             try:
                 self.stats["calls"] += 1
                 text, usage = self.provider.generate(model, system, user, temperature, json_mode)
@@ -233,6 +236,8 @@ class LLMClient:
                 if e.status in (429, 500, 502, 503, 504):
                     wait = max(e.retry_after or 0, delay) + random.uniform(0, 1.5)
                     self.stats["retries"] += 1
+                    print(f"    [llm] {model} HTTP {e.status}; retry {attempt + 1}/{config.LLM_MAX_RETRIES} in {wait:.0f}s",
+                          file=sys.stderr, flush=True)
                     time.sleep(wait)
                     delay = min(delay * 2, 90)
                     continue
@@ -240,6 +245,14 @@ class LLMClient:
             except (httpx.TimeoutException, httpx.TransportError) as e:
                 last_err = e
                 self.stats["retries"] += 1
+                timeouts = self.stats.setdefault("timeouts", 0) + 1
+                self.stats["timeouts"] = timeouts
+                print(f"    [llm] {model} {type(e).__name__} after {config.LLM_TIMEOUT_S:.0f}s (attempt {attempt + 1})",
+                      file=sys.stderr, flush=True)
+                if isinstance(e, httpx.TimeoutException) and timeouts_this_call >= 1:
+                    # a timed-out request may still consume free-tier quota: retry at most once
+                    raise LLMError(f"{model} timed out twice; not retrying further to protect the daily quota") from None
+                timeouts_this_call += 1
                 time.sleep(delay + random.uniform(0, 1.5))
                 delay = min(delay * 2, 90)
         if isinstance(last_err, _HTTPStatus) and last_err.status == 429:

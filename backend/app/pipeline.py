@@ -9,6 +9,7 @@ from __future__ import annotations
 import re
 from collections import OrderedDict
 
+from . import config
 from . import guard as G
 from . import judge as J
 from . import normalize as N
@@ -45,21 +46,24 @@ def _clip_sentences(text: str, n: int = 3) -> str:
     return out
 
 
-def process_question(q: dict, reports: list[dict], client: LLMClient) -> tuple[list[Result], dict]:
+def prepare(q: dict, reports: list[dict]):
     qcheck = PC.check_question(q)
-    rflags = []
-    for r in reports:
-        flags = PC.check_report(r, q)
-        rflags.append({**r, "flags": [f.as_dict() for f in flags]})
-    injection = any(any(f["code"] == "injection" for f in r["flags"]) for r in rflags)
+    rflags = [{**r, "flags": [f.as_dict() for f in PC.check_report(r, q)]} for r in reports]
+    return qcheck, rflags
 
-    view = N.question_view(q)
-    solves = S.run_solvers(view, client)
+
+def process_question(q: dict, reports: list[dict], client: LLMClient) -> tuple[list[Result], dict]:
+    """Unbatched path: 3 calls for this question."""
+    qcheck, rflags = prepare(q, reports)
+    solves = S.run_solvers(N.question_view(q), client)
     agree = S.agreement(q, solves)
+    jo, jmeta = J.run_judge(J.build_packet(q, qcheck, rflags, solves, agree), client)
+    return finalize(q, qcheck, rflags, solves, agree, jo, jmeta, client)
 
-    packet = J.build_packet(q, qcheck, rflags, solves, agree)
-    jo, jmeta = J.run_judge(packet, client)
 
+def finalize(q, qcheck, rflags, solves, agree, jo, jmeta, client) -> tuple[list[Result], dict]:
+    """Deterministic post-rules, guard and routing (no LLM except one edit-fix retry)."""
+    injection = any(any(f["code"] == "injection" for f in r["flags"]) for r in rflags)
     results: list[Result] = []
     per_report: dict[str, dict] = {}
     edit_cache: dict[str, tuple[Edit | None, list[str]]] = {}
@@ -143,12 +147,33 @@ def run(report_ids: list[str] | None = None, client: LLMClient | None = None, lo
         reps = [r for r in reps if r["questionId"] in target_q]  # keep whole groups together
     results: list[Result] = []
     details: dict[str, dict] = {}
-    for qid, group in group_reports(reps).items():
-        log(f"  {qid} <- {[r['reportId'] for r in group]}")
-        res, det = process_question(qmap[qid], group, client)
-        results += res
-        details[qid] = det
-        for x in res:
-            log(f"    {x.reportId}: {x.verdict}/{x.repair} -> {x.route} ({x.confidence})")
+    groups = group_reports(reps)
+    batched = config.SOLVER_BATCH_SIZE > 1 or config.JUDGE_BATCH_SIZE > 1
+    if not batched:
+        for qid, group in groups.items():
+            log(f"  {qid} <- {[r['reportId'] for r in group]}")
+            res, det = process_question(qmap[qid], group, client)
+            results += res
+            details[qid] = det
+            for x in res:
+                log(f"    {x.reportId}: {x.verdict}/{x.repair} -> {x.route} ({x.confidence})")
+    else:
+        # Free-tier mode: questions batched per call; every question still gets its own
+        # blind solves, its own judged case and its own deterministic post-processing.
+        qids = list(groups)
+        prep = {qid: prepare(qmap[qid], groups[qid]) for qid in qids}
+        log(f"  solving {len(qids)} questions in batches of {config.SOLVER_BATCH_SIZE} x 2 solvers")
+        solves_all = S.run_solvers_batch([N.question_view(qmap[qid]) for qid in qids], client, log)
+        agrees = {qid: S.agreement(qmap[qid], solves_all[qid]) for qid in qids}
+        packets = [J.build_packet(qmap[qid], prep[qid][0], prep[qid][1], solves_all[qid], agrees[qid]) for qid in qids]
+        log(f"  judging {len(qids)} cases in batches of {config.JUDGE_BATCH_SIZE}")
+        judged = J.run_judge_batch(packets, client, log)
+        for qid in qids:
+            jo, jmeta = judged[qid]
+            res, det = finalize(qmap[qid], prep[qid][0], prep[qid][1], solves_all[qid], agrees[qid], jo, jmeta, client)
+            results += res
+            details[qid] = det
+            for x in res:
+                log(f"    {x.reportId}: {x.verdict}/{x.repair} -> {x.route} ({x.confidence})")
     results.sort(key=lambda r: r.reportId)
     return results, details, client.stats

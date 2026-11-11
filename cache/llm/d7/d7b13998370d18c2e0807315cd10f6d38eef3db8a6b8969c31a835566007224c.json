@@ -1,0 +1,19 @@
+{
+ "text": "{\n  \"question_analysis\": \"The question asks why the rate of photosynthesis is lower in herbs and shrubs compared to canopy sun plants. The stored answer is C ('Herb, shrubs receive more green light'), which matches both blind solves and the scientific facts. The reported spelling mistake ('mere' instead of 'more') was already corrected by faculty on 2026-11-07.\",\n  \"correct_answer\": \"C\",\n  \"edit\": null,\n  \"decisions\": [\n    {\n      \"reportId\": \"R017\",\n      \"verdict\": \"already_fixed\",\n      \"repair\": null,\n      \"confidence\": 1.0,\n      \"evidence\": \"The student reported a typo where 'mere' was used instead of 'more'. This was resolved by faculty on 2026-11-07 as recorded in errorHistory.\",\n      \"reply_if_fixed\": \"Thank you for pointing this out! This spelling error has already been corrected.\",\n      \"reply_if_review\": \"Thank you for pointing this out! This spelling error has already been corrected.\"\n    }\n  ]\n}",
+ "model": "gemini-3.8-flash",
+ "prompt_version": "judge-v1",
+ "usage": {
+  "promptTokenCount": 2855,
+  "candidatesTokenCount": 253,
+  "totalTokenCount": 3288,
+  "promptTokensDetails": [
+   {
+    "modality": "TEXT",
+    "tokenCount": 2855
+   }
+  ],
+  "thoughtsTokenCount": 180,
+  "serviceTier": "standard"
+ },
+ "at": "2026-11-11T03:51:08Z"
+}

@@ -1,6 +1,6 @@
 # SPEC — Report → Fix (frozen at P0, 2026-11-11)
 
-Source of truth: `README.md` (Acadza brief) + `data/taxonomy.json`. Where this spec and the brief disagree, the brief wins.
+Source of truth: `ASSIGNMENT.md` (the original Acadza README, moved byte-identical) + `data/taxonomy.json`. Where this spec and the brief disagree, the brief wins.
 
 ## 1. Verified dataset facts (from the files, not from memory)
 

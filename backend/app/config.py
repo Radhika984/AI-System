@@ -36,12 +36,12 @@ def env(name: str, default: str = "") -> str:
 
 
 LLM_PROVIDER = env("LLM_PROVIDER", "gemini")
-SOLVER_A_MODEL = env("SOLVER_A_MODEL", "gemini-3.8-flash")
-SOLVER_B_MODEL = env("SOLVER_B_MODEL", "gemini-3.6-flash")
-JUDGE_MODEL = env("JUDGE_MODEL", "gemini-3.8-flash")
-FALLBACK_MODEL = env("FALLBACK_MODEL", "gemini-3.1-flash-lite")
+SOLVER_A_MODEL = env("SOLVER_A_MODEL", "gemini-3.6-flash")
+SOLVER_B_MODEL = env("SOLVER_B_MODEL", "gemini-3.1-flash-lite")
+JUDGE_MODEL = env("JUDGE_MODEL", "gemini-3-flash-preview")
+# No fallback model: on a quota stop the run halts; it never switches models or providers.
 LLM_MIN_INTERVAL_S = float(env("LLM_MIN_INTERVAL_S", "6"))
-LLM_TIMEOUT_S = float(env("LLM_TIMEOUT_S", "90"))
+LLM_TIMEOUT_S = float(env("LLM_TIMEOUT_S", "300"))
 LLM_MAX_RETRIES = int(env("LLM_MAX_RETRIES", "5"))
 LLM_OFFLINE = env("LLM_OFFLINE", "0") == "1"
 
@@ -62,3 +62,5 @@ if not STATE_DIR.is_absolute():
 CORS_ORIGINS = [o.strip() for o in env("CORS_ORIGINS", "http://localhost:5173").split(",") if o.strip()]
 
 AUTO_APPLY_MIN_CONFIDENCE = 0.85
+SOLVER_BATCH_SIZE = int(env("SOLVER_BATCH_SIZE", "10"))
+JUDGE_BATCH_SIZE = int(env("JUDGE_BATCH_SIZE", "3"))

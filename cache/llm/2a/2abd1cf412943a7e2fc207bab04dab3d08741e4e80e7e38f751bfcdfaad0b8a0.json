@@ -1,0 +1,19 @@
+{
+ "text": "{\n  \"question_analysis\": \"For two coherent waves of equal intensity I₀ interfering with phase difference π/2, the resultant intensity is I = 4I₀ cos²(π/4) = 2I₀, making Assertion (A) false. Reason (R) is also false because interference intensity is not generally the sum of intensities for arbitrary non-zero phase differences (e.g., at π it is zero). Because both statements are false, none of the four standard options is correct, making the question unsound.\",\n  \"correct_answer\": null,\n  \"edit\": null,\n  \"decisions\": [\n    {\n      \"reportId\": \"R034\",\n      \"verdict\": \"defect\",\n      \"repair\": \"unsound\",\n      \"confidence\": 0.95,\n      \"evidence\": \"Resultant intensity is I = 4I₀cos²(π/4) = 2I₀, so Assertion is false. Reason is also false (e.g. at π, intensity is 0), leaving no correct option among (A)-(D).\",\n      \"reply_if_fixed\": \"With a phase difference of π/2, the resultant intensity is 4I₀cos²(π/4) = 2I₀, not I₀. Both Assertion and Reason are actually false, so the options for this question are being revised.\",\n      \"reply_if_review\": \"With a phase difference of π/2, the resultant intensity is 4I₀cos²(π/4) = 2I₀, so Assertion and Reason are both false. Our faculty are reviewing the question options.\"\n    }\n  ]\n}",
+ "model": "gemini-3.8-flash",
+ "prompt_version": "judge-v1",
+ "usage": {
+  "promptTokenCount": 3932,
+  "candidatesTokenCount": 366,
+  "totalTokenCount": 6631,
+  "promptTokensDetails": [
+   {
+    "modality": "TEXT",
+    "tokenCount": 3932
+   }
+  ],
+  "thoughtsTokenCount": 2333,
+  "serviceTier": "standard"
+ },
+ "at": "2026-11-11T03:55:25Z"
+}

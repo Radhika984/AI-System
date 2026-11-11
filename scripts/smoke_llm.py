@@ -14,7 +14,7 @@ from app.llm.client import LLMClient, LLMError, QuotaExhausted  # noqa: E402
 
 def main() -> int:
     client = LLMClient()
-    models = sorted({config.SOLVER_A_MODEL, config.SOLVER_B_MODEL, config.JUDGE_MODEL, config.FALLBACK_MODEL})
+    models = sorted({config.SOLVER_A_MODEL, config.SOLVER_B_MODEL, config.JUDGE_MODEL})
     ok = True
     for m in models:
         try:

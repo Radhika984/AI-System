@@ -1,0 +1,19 @@
+{
+ "text": "{\n  \"final_answer\": \"C\",\n  \"numeric_value\": 10.0,\n  \"expression\": \"(10 * 14 + 4 * 0) / (10 + 4)\",\n  \"method\": \"Calculated the total linear momentum immediately after the impulse and divided by the total mass to find the velocity of the centre of mass.\",\n  \"confidence\": 1.0,\n  \"problems_noticed\": []\n}",
+ "model": "gemini-3.6-flash",
+ "prompt_version": "solverB-v2",
+ "usage": {
+  "promptTokenCount": 468,
+  "candidatesTokenCount": 103,
+  "totalTokenCount": 1026,
+  "promptTokensDetails": [
+   {
+    "modality": "TEXT",
+    "tokenCount": 468
+   }
+  ],
+  "thoughtsTokenCount": 455,
+  "serviceTier": "standard"
+ },
+ "at": "2026-11-11T03:57:50Z"
+}

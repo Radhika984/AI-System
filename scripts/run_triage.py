@@ -49,14 +49,14 @@ def main() -> int:
     config.ARTIFACTS_DIR.mkdir(exist_ok=True)
     rows = [r.model_dump() for r in results]
     if args.all:
-        (ROOT / "results.json").write_text(json.dumps(rows, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        (ROOT / "results.json").write_text(json.dumps(rows, indent=2, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
         (config.ARTIFACTS_DIR / "triage_details.json").write_text(
-            json.dumps(details, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+            json.dumps(details, indent=1, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
         out = "results.json"
     else:
         name = "pilot" if args.pilot else "partial"
         (config.ARTIFACTS_DIR / f"{name}_results.json").write_text(
-            json.dumps({"results": rows, "details": details}, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+            json.dumps({"results": rows, "details": details}, indent=1, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
         out = f"artifacts/{name}_results.json"
     print(f"\nwrote {out}: {len(rows)} rows in {time.time() - t0:.0f}s | llm stats {stats}")
     return 0

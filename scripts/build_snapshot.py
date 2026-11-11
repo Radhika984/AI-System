@@ -31,7 +31,7 @@ def main() -> int:
         }
     out = ROOT / "frontend" / "public" / "snapshot.json"
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(snap, ensure_ascii=False), encoding="utf-8")
+    out.write_text(json.dumps(snap, ensure_ascii=False), encoding="utf-8", newline="\n")
     print(f"wrote {out.relative_to(ROOT)}: {len(queue)} cases, {out.stat().st_size // 1024} KB")
     return 0
 

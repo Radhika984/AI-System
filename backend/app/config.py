@@ -36,7 +36,7 @@ def env(name: str, default: str = "") -> str:
 
 
 LLM_PROVIDER = env("LLM_PROVIDER", "gemini")
-SOLVER_A_MODEL = env("SOLVER_A_MODEL", "gemini-3.6-flash")
+SOLVER_A_MODEL = env("SOLVER_A_MODEL", "gemini-3-flash-preview")
 SOLVER_B_MODEL = env("SOLVER_B_MODEL", "gemini-3.1-flash-lite")
 JUDGE_MODEL = env("JUDGE_MODEL", "gemini-3-flash-preview")
 # No fallback model: on a quota stop the run halts; it never switches models or providers.
@@ -63,4 +63,4 @@ CORS_ORIGINS = [o.strip() for o in env("CORS_ORIGINS", "http://localhost:5173").
 
 AUTO_APPLY_MIN_CONFIDENCE = 0.85
 SOLVER_BATCH_SIZE = int(env("SOLVER_BATCH_SIZE", "10"))
-JUDGE_BATCH_SIZE = int(env("JUDGE_BATCH_SIZE", "3"))
+JUDGE_BATCH_SIZE = int(env("JUDGE_BATCH_SIZE", "4"))

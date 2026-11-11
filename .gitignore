@@ -31,3 +31,6 @@ artifacts/*.log
 
 # e2e screenshots
 tests/e2e/out/
+
+# ad-hoc partial reruns (not the submission)
+artifacts/runs/

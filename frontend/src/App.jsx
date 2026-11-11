@@ -206,7 +206,10 @@ export default function App() {
         {readOnly ? (
           <div className="bg-amber-100 px-4 py-1.5 text-sm text-amber-900">
             <b>Read-only snapshot.</b> The API is unreachable, so you're seeing results saved
-            {meta?.generated_at ? ` on ${fmtDate(meta.generated_at)}` : ''}. Approve, Edit and Reject are disabled.
+            {meta?.generated_at ? ` on ${fmtDate(meta.generated_at)}` : ''}. Approve, Edit and Reject are disabled. A free server can take up to a minute to wake.{' '}
+            <button onClick={() => location.reload()} className="ml-1 rounded border border-amber-400 bg-white px-2 py-0.5 text-xs font-semibold">
+              Try live again
+            </button>
           </div>
         ) : (
           <div className="bg-slate-100 px-4 py-1 text-xs text-slate-600">

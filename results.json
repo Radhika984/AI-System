@@ -490,7 +490,7 @@
     "route": "no_change",
     "confidence": 0.7,
     "evidence": "Student requested the question in Hindi.",
-    "student_reply": "Currently, our questions are provided in English. We are working on adding support for other languages in the future."
+    "student_reply": "Thanks for asking! This question is currently available only in English, so it can't be switched to another language here."
   },
   {
     "reportId": "R040",

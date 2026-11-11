@@ -1,6 +1,6 @@
 """Run the triage engine.
 
-  python scripts/run_triage.py --pilot          # R005 R004 R027 R017 R009 R034 -> artifacts/pilot_results.json
+  python scripts/run_triage.py --pilot          # R005 R004 R027 R017 R009 R034 -> artifacts/runs/pilot_results.json (NOT the submission)
   python scripts/run_triage.py --reports R004 R011
   python scripts/run_triage.py --all            # all 44 -> results.json + artifacts/triage_details.json
   LLM_OFFLINE=1 python scripts/run_triage.py --all   # replay from cache/, zero API calls
@@ -55,9 +55,10 @@ def main() -> int:
         out = "results.json"
     else:
         name = "pilot" if args.pilot else "partial"
-        (config.ARTIFACTS_DIR / f"{name}_results.json").write_text(
+        (config.ARTIFACTS_DIR / "runs").mkdir(exist_ok=True)
+        (config.ARTIFACTS_DIR / "runs" / f"{name}_results.json").write_text(
             json.dumps({"results": rows, "details": details}, indent=1, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
-        out = f"artifacts/{name}_results.json"
+        out = f"artifacts/runs/{name}_results.json (not the submission; results.json is)"
     print(f"\nwrote {out}: {len(rows)} rows in {time.time() - t0:.0f}s | llm stats {stats}")
     return 0
 

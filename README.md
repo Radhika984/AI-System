@@ -12,9 +12,10 @@ Students tap **Report error** and type whatever they feel like. This system deci
 | Product thinking (1 page) | [`PRODUCT.md`](PRODUCT.md) |
 | Spec, routing rules, traceability | [`SPEC.md`](SPEC.md) |
 | Bonus: unreported defects | [`bonus_findings.json`](bonus_findings.json) |
+| Submission outcome | 44 reports: **16** auto-applied, **11** sent to faculty review, **17** no change. 56 successful Gemini free-tier calls in total (rate-limited attempts that failed aren't counted), ₹0. See [`artifacts/README.md`](artifacts/README.md) for which files are submission and which are historical. |
 | Live console | **Not deployed yet.** After deployment this row lists the Vercel console URL and the Render API `/health` URL. Until then, run it locally (below). |
 
-> **Precomputed results.** The live console serves `results.json`, which was generated offline with **Google AI Studio free-tier Gemini models (₹0 spent)**. The deployed API makes **no LLM calls**, so it can't run out of credits or be prompt-injected at runtime. Faculty actions (approve/edit/reject) are live, audited, and require a reviewer passcode that is checked by the server.
+> **Precomputed results.** The live console serves `results.json`, which was generated offline with **Google AI Studio free-tier Gemini models (₹0 spent)**. The deployed API makes **no LLM calls**, so it can't run out of credits or be prompt-injected at runtime. Faculty actions (approve/edit/reject) are live and audited, and they require a **reviewer passcode** checked by the server. Without it the console is view-only; the passcode is shared privately with reviewers, never published.
 
 ## Architecture
 
@@ -38,26 +39,27 @@ taxonomy.json ┘   malformed keys, missing/blank/duplicate │
                            React console (Vite + Tailwind, DOMPurify + native MathML)
 ```
 
-* **Two blind solvers** run on *different* free models, `gemini-3-flash-preview` and `gemini-3.1-flash-lite`, so their errors are independent. They get only the stem and options, never the key, the stored solution or the student's comment. Each also returns one arithmetic expression, which `safe_eval.py` (an AST whitelist, never `eval`) recomputes.
+* **Two blind solvers** run on *different* free models, `gemini-3-flash-preview` and `gemini-3.1-flash-lite`, so their errors are more independent than two runs of one model. Solver B, the lighter model, is the weaker one: the two solvers' answers differ on 12 of 39 questions. On 3 of those (R006, R011, R025) a solver couldn't answer because content is missing, which is evidence for the defect. On the other 9 questions (10 reports) the case is escalated rather than trusted (SPEC §3 rule 5). They get only the stem and options, never the key, the stored solution or the student's comment. Each also returns one arithmetic expression, which `safe_eval.py` (an AST whitelist, never `eval`) recomputes.
 * **The judge** (`gemini-3-flash-preview`) sees one question at a time with *all* of its reports grouped. It also gets the deterministic flags, both solves, the raw HTML (for exact edit anchors) and each comment escaped inside `<student_comment>` tags, labelled as untrusted data.
-* **The guard** (`guard.py`) checks every proposed edit. The field must be in the repair's scope (from `taxonomy.json`), and `find` must occur exactly once. The edit is dry-run on a copy and re-parsed with `lxml`, and no option may be lost. Each repair type has its own rule: spelling moves letters only, `exam_reference` and `noise` only delete, `answer_form` only adds, `stem_data` values must appear in the stored solution, and `option_repair` may not touch the stem. A failed edit gets one LLM repair attempt, which is guarded again, and is dropped if it still fails.
+* **The guard** (`guard.py`) checks every proposed edit. The field must be in the repair's scope (from `taxonomy.json`), and `find` must occur exactly once. The edit is dry-run on a copy and re-parsed with `lxml`, and no option may be lost. Each repair type has its own rule: spelling moves letters only, `exam_reference` and `noise` only delete, `answer_form` only adds, `stem_data` values must appear in the stored solution, `option_repair` may not touch the stem and may only restore the keyed option, and no edit may introduce raw LaTeX. A failed edit gets one LLM repair attempt, which is guarded again, and is dropped if it still fails.
 * **Routing** is deterministic code ([SPEC §3](SPEC.md)), not the model. A non-defect becomes `no_change`. An `auto:false` repair goes to `faculty_review` with `edit: null`. An `auto:true` repair is auto-applied only if:
   - the guard passes, and confidence is at least 0.85
   - no report on that question carries an injection flag
   - for answer keys: both solvers agree on the new key, the arithmetic re-check passes, and the subject is computational (biology keys always go to faculty)
+  - the two blind solvers don't disagree: a disagreement caps confidence at 0.7, which sends defects to faculty and marks no-change cases "AI unsure" (SPEC §3 rule 5)
 * **Patch layer.** `data/` is never written; it's read-only and SHA-256 pinned in tests. Approved and auto-applied edits live in `state/patches.json`. Every action (auto-apply, approve, edit, reject, revert, reopen) appends to `state/audit.jsonl` with the actor, timestamp and before/after values.
 
 ### Faculty console
 
 The queue is grouped by question and ordered by harm to students:
 
-1. **Priority 1:** wrong key, wrong question, unsound question
+1. **Priority 1:** wrong key, wrong question, unsound question, and "AI unsure" cases (the blind solvers disagree, or both dispute the stored key)
 2. **Priority 2:** missing data, option or figure
 3. **Priority 3:** wrong solution
 4. **Priority 4:** cosmetic issues
 5. **Priority 5:** no change needed
 
-Within a band, more distinct reporters come first, then lower AI confidence, then the oldest report. A case where both blind solvers dispute a key the judge called correct is raised to priority 1.
+Within a band, more distinct reporters come first, then lower AI confidence, then the oldest report. Because of that order, the "AI unsure" cases (confidence 0.7) sit above the already-live key fixes (which are auto-applied and only need a spot check).
 
 Each case answers five questions top to bottom: *what is wrong, why, what will change (rendered before/after diff), is it safe (route reasons, guard log, injection warning), what the student receives*. **Approve** is the primary action. Keyboard shortcuts: `A` approve, `E` edit, `R` reject, `J`/`K` next/previous. The console advances to the next case automatically after each decision.
 
@@ -67,7 +69,7 @@ Requires Python 3.10+ and Node 18+.
 
 ```bash
 pip install -r backend/requirements.txt
-python -m pytest -q tests                  # 126 deterministic, offline-stub, API and security tests; no API key needed
+python -m pytest -q tests                  # 127 deterministic, offline-stub, API and security tests; no API key needed
 
 # API (serves the committed results.json; no LLM key needed).
 # Faculty actions need a reviewer passcode, read from the environment only (see "Reviewer access").
@@ -146,13 +148,15 @@ It then stops everything and confirms `data/` is unchanged. It isn't collected b
 
 * **Backend → Render** (`render.yaml`, free plan): `uvicorn app.main:app`, health check `/health`. Set `CORS_ORIGINS` to the Vercel URL.
 * **Frontend → Vercel** (`vercel.json`): builds `frontend/`. Set `VITE_API_BASE` to the Render URL.
-* **Snapshot fallback.** `frontend/public/snapshot.json` is bundled at build time. If the API is unreachable (for example, the free Render instance is asleep and fails to wake), the console loads the snapshot and shows a **read-only** banner, with all actions disabled.
+* **Secrets on Render:** set `REVIEWER_PASSCODE` and a *different* `ADMIN_RESET_TOKEN` in the Render dashboard. They're declared `sync: false` in `render.yaml`, so they're never stored in the repo. Share the passcode with reviewers privately; the reset token stays with the maintainer.
+* **Cold start and snapshot fallback.** A free Render instance sleeps after inactivity and can take up to about a minute to wake. The console waits 25 seconds; if the API still hasn't answered, it loads `frontend/public/snapshot.json` (bundled at build time) and shows a **read-only** banner with all actions disabled. The banner has a **Try live again** button, which reloads once the API is awake.
 * **Single-service fallback.** If `frontend/dist` exists, FastAPI also serves the console from the same origin.
 
 ## Limitations, stated honestly
 
 * **Free-tier limits.** Gemini's free tier allows 20 requests per day per model, so questions are batched: 10 per solver call and 4 per judge call. Solver A and the judge share a model; solver B is a different model.
+* **Google's free tier may use prompts to improve its products.** That's acceptable here because every prompt contains only the public assignment data.
 * **Render free tier has an ephemeral disk.** Faculty actions and the audit log persist across requests and survived a local process restart in testing. On Render's free tier they are lost on redeploy or spin-down, which resets to the clean demo state. A production version would use a database.
 * **Access control is a single shared passcode, not per-user accounts.** The name typed in the header is recorded as the audit actor but isn't authenticated. Wrong passcodes and wrong reset tokens share one rate limit: 8 failures per 10 minutes per client, after which even the correct passcode gets 429 until the window passes. The limiter is in-memory, so it resets when the process restarts.
 * **Audit timestamps for system auto-applies** show when the API process loaded the results (or when the demo was last reset), not when the offline triage ran.
-* `results.json` is the engine's output. Any deviation from what the engine produced would be listed in `PROMPTS.md`; there are none unless stated there.
+* **`results.json` is the engine's output, with no hand edits.** Every non-LLM decision is a coded rule, logged per report under `overrides` in `artifacts/triage_details.json` and explained in `PROMPTS.md`. These cover: R017 (verified already-fixed), R026 (syllabus claims go to faculty), the 10 rule-5 confidence caps, and R039 (a reply that promised an uncommitted feature was replaced by a factual template). Running `LLM_OFFLINE=1 python scripts/run_triage.py --all` reproduces the file byte-for-byte.

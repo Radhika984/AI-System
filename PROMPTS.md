@@ -257,7 +257,7 @@ Effect: the assistant pointed to the existing enforcement (the free-model allowl
 
 ### Mistake 1: a correct answer-key fix was blocked by an over-strict check (pilot, R005)
 - **What happened.** Both blind solvers correctly got n = 1 (the key said 2). Solver A's arithmetic expression, `(1/2)*(1/2)+(1/8)*2` = 0.5, computed the *flux in units of q/ε₀* instead of n. The restricted evaluator flagged the mismatch. The rule the assistant had written ("any mismatch blocks auto-apply") then sent a clearly provable fix to faculty.
-- **Caught by.** Reading `route_reasons` in `artifacts/pilot_results.json` ("restricted evaluator did not reproduce the solvers' value"), and comparing it with the hand audit, which expected auto_apply.
+- **Caught by.** Reading `route_reasons` in the pilot output (kept as historical evidence in `artifacts/history/pilot_run1_2026-11-11_results.json`) ("restricted evaluator did not reproduce the solvers' value"), and comparing it with the hand audit, which expected auto_apply.
 - **Fix.** Solver prompts v2: the expression must equal the final quantity. The rule became: at least one solver's arithmetic must reproduce its claim (both final answers must already agree), and an unparseable expression counts as "unverified", not as contrary evidence. Regression test: `tests/test_solver.py::test_r005_intermediate_expression_tolerated_when_other_solver_reproduces`, which uses the exact pilot expressions.
 
 ### Mistake 2: the AI invented an answer option, and the system auto-applied it (R009/R010)
@@ -288,7 +288,7 @@ Effect: the assistant pointed to the existing enforcement (the free-model allowl
 **Architecture**
 - **Group reports per question before judging.** Four questions have 2–3 reports, and they share a root cause. One judgement per question keeps the reports consistent, and the queue shows "3 students" as an urgency signal.
 - **Blind solvers on different models.** A solver that sees the key or the student's claim anchors on it; R004's student is confidently wrong ("8225"). Using different models makes their errors more independent. Trade-off, stated honestly: under quota pressure the judge shares a model with solver A.
-- **Deterministic code around the LLM.** The model proposes and code disposes. Precheck flags, the guard, routing and the post-rules are plain Python, with 126 pytest tests plus 17 browser end-to-end checks (`tests/e2e/run_e2e.py`). The LLM never writes to storage, and the deployed API makes **no** LLM calls, so it can't be prompt-injected at runtime.
+- **Deterministic code around the LLM.** The model proposes and code disposes. Precheck flags, the guard, routing and the post-rules are plain Python, with 127 pytest tests plus 17 browser end-to-end checks (`tests/e2e/run_e2e.py`). The LLM never writes to storage, and the deployed API makes **no** LLM calls, so it can't be prompt-injected at runtime.
 - **Rule-based overrides are visible.** Four exist:
   - verified already-fixed (R017);
   - a syllabus claim always goes to faculty (the taxonomy says "Faculty confirm");

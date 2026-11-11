@@ -73,3 +73,13 @@ def test_rule5_agreement_is_not_dispute():
 def test_rule5_respects_numeric_tolerance():
     # R033: 3113 vs 3112.99 are the same answer within solver.agreement's 1% tolerance
     assert solvers_dispute({"agree": True, "answers": {"A": "3113", "B": "3112.99"}}, {"A": {}, "B": {}}, "no_error", None) is None
+
+
+# ---------------- student replies never promise uncommitted features (R039)
+def test_reply_promise_guard_and_templates():
+    from app.pipeline import _PROMISE, FALLBACK_REPLY
+    assert _PROMISE.search("We are working on adding support for other languages in the future.")
+    assert _PROMISE.search("Hindi will be added soon.")
+    assert not _PROMISE.search("The key was wrong; it's (D). Fixed now, thanks.")
+    for k, t in FALLBACK_REPLY.items():  # templates must obey the same rule
+        assert not _PROMISE.search(t), k

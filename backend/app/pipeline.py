@@ -47,10 +47,16 @@ def solvers_dispute(agree: dict, solves: dict, verdict: str, repair: str | None)
     return None
 
 # Used only when a deterministic rule overrides the model's verdict, or the model's reply is unusable.
+# Student replies may describe what happened, never commit to features or timelines nobody has
+# promised (e.g. "we are working on Hindi support"). Such replies are replaced by the verdict template.
+_PROMISE = re.compile(r"in the future|working on|will (be )?(add|support|launch|release|introduce)|coming soon|\bsoon\b"
+                      r"|plan(ning)? to|\bwe will\b|\bwe'll\b|upcoming|roadmap", re.I)
+
 FALLBACK_REPLY = {
     "already_fixed": "Thanks for flagging this! A teacher already corrected it after your report, so reopen the question and you'll see the fixed version.",
-    "not_actionable": "Thanks for reaching out! We checked this question and it looks correct; if something still seems off, tell us what you expected and we'll look again.",
-    "defect": "You spotted a real problem - thank you! A teacher is verifying the fix now and the question will be updated shortly.",
+    "not_actionable": "Thanks for reaching out! We checked this question and found nothing wrong; if something still seems off, report it again with what you expected.",
+    "defect": "You spotted a real problem - thank you! A teacher is reviewing the fix now.",
+    "language_mode": "Thanks for asking! This question is currently available only in English, so it can't be switched to another language here.",
     "syllabus": "Thanks for flagging this! A teacher will confirm whether it's in your syllabus; until then the question stays live, so it's fine to skip it if it's unfamiliar.",
     "_": "Thanks for flagging this! We checked the question carefully and it is correct as stored.",
 }
@@ -145,6 +151,9 @@ def finalize(q, qcheck, rflags, solves, agree, jo, jmeta, client) -> tuple[list[
             reply = FALLBACK_REPLY.get(repair if repair in FALLBACK_REPLY else verdict, FALLBACK_REPLY["_"])
             overrides.append("student_reply replaced by template (verdict overridden)")
         reply = _clip_sentences(reply)
+        if _PROMISE.search(reply):
+            overrides.append(f"student_reply replaced by template (unverified promise: {_PROMISE.search(reply).group(0)!r})")
+            reply = FALLBACK_REPLY.get(verdict, FALLBACK_REPLY["_"])
         if len(reply) < 10 or count_sentences(reply) < 1:
             reply = FALLBACK_REPLY.get(verdict, FALLBACK_REPLY["_"])
             overrides.append("student_reply replaced by template (model reply unusable)")

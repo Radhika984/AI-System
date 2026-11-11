@@ -1899,7 +1899,8 @@
      }
     ],
     "overrides": [
-     "confidence 1.00->0.7 (blind solvers disagree: A=A, B=B)"
+     "confidence 1.00->0.7 (blind solvers disagree: A=A, B=B)",
+     "student_reply replaced by template (unverified promise: 'working on')"
     ],
     "route_reasons": [
      "verdict language_mode is not a defect"

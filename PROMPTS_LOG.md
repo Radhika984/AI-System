@@ -171,3 +171,67 @@ Results: no automatic path could be bent (7 injection styles incl. teacher-appro
 > Fix N1, N2 and O1 [...] If a case is flagged for prompt injection/manipulation, do not offer its AI-proposed edit as a one-click faculty approval. If the proposed answer conflicts with either blind solver, do not offer that edit as an approvable suggestion. [...] Add a reasonable maximum request-body size. [...] Reject unknown top-level request fields. Reject unknown nested edit fields.
 
 What changed: `Store.suggestion` (N1; console shows the withheld proposal + reasons, Approve applies nothing, Edit form starts empty); `BodySizeLimit` ASGI middleware 64 KB + `Edit` field limits + reverted patches hidden (N2); `extra="forbid"` on `Edit`, `ActionIn`, `ResetIn` (O1); `judge.fix_edit_once` now passes only field/find/replace to `Edit` so cached replays are unaffected; client shows readable 413/422 messages (it used to print "[object Object]" for validation errors). results.json unchanged; R021's suggestion is now withheld (solver B answered C). New tests `tests/test_n1_n2_o1.py`: 19/22 fail on 055378b, 22/22 pass now; 199 total.
+
+## 2026-11-11 ~15:56 IST — Frontend-only console redesign
+
+### Coding-assistant prompt #14 (key lines, verbatim)
+> I want you to redesign the EXISTING Acadza Faculty Console into a polished, premium, professional academic AI review workspace. This is a FRONTEND-ONLY visual redesign. [...] **Editorial Intelligence Workspace**
+
+What changed: commit `5fb7b7a`. New palette and Inter/Lora typography, workspace overview, grouped searchable queue, decision summary, *Original vs proposed*, *Why this recommendation?*, *Safety and human review*, *Student communication*, audit timeline. Only frontend files plus two renamed selector strings in `tests/e2e/run_e2e.py`; backend, data and `results.json` untouched. Browser e2e 18/18, a redesign UI check 22/22, pytest 199/199.
+
+Follow-up (16:37 IST), verbatim: "Removes this only from the dashboard" (with a screenshot of the header info banner). The banner was removed; it was committed with the next fixes.
+
+## 2026-11-11 ~16:55 IST — First browser UX test → seven UX fixes
+
+### Coding-assistant prompt #15 (key lines, verbatim)
+> Perform an end-to-end **Faculty Console UX Testing** for my existing project. [...] **Use browser access to test the actual running website.** Open the website in the browser and interact with its real UI. [...] Do not replace browser testing with source-code inspection.
+
+Playwright/Chromium on the running site; actions only on the throwaway manual-test state. Findings: raw MathML printed in the audit history (R011); "As students see it" labelled the stored original even when a fix was live; no confirmation before Approve/Reject; a stale edit error and the bottom bar overlapping the edit form; internal jargon in routing reasons; "To review" vs "Waiting for review" unexplained; "(top right)" wrong on small screens.
+
+### Coding-assistant prompt #16 (key lines, verbatim)
+> Based on the completed Faculty Console UX browser testing report, implement only the necessary fixes listed below. [...] First inspect the existing implementation and identify the exact causes. [...] Make minimal, targeted changes only.
+
+What changed: commit `e254efc`. Audit edits rendered as sanitised HTML; version-aware "Stored original · before the correction" label; inline confirmation for Approve/Reject plus a duplicate-submit guard; edit errors shown and cleared inside the form; plain-language reasons (raw reason kept as tooltip); queue caption; "in the page header". e2e 19/19, pytest 199/199.
+
+## 2026-11-11 ~19:09 IST — Real-browser Criterion C audit → Enter-key fix
+
+### Coding-assistant prompt #17 (key lines, verbatim)
+> IMPORTANT: Browser-based testing is mandatory. Do not replace it with source-code inspection, API-only tests, or screenshots generated without browser interaction. [...] Use a fresh isolated temporary state for action testing.
+
+Read-only checks on the running site; all actions on a separate isolated API + Vite instance with a temporary state and a random passcode. 54/56 checks passed. One real bug: Enter did not confirm an open confirmation. **Assistant slip:** its previous report had said 'The "Yes" button gets focus, so Enter confirms.' without testing it; the browser run showed focus stayed on `<body>`.
+
+### Coding-assistant prompt #18 (key lines, verbatim)
+> Make ONE minimal frontend-only fix for the Criterion C browser-audit finding. [...] Do not allow keyboard shortcuts to bypass confirmation. [...] Add or update a real Playwright Chromium test that opens the confirmation, presses Enter and verifies exactly one action is recorded.
+
+Cause: the `autofocus` attribute does not move focus to a button inserted after page load. Fix: commit `621f5f0`, Enter handled in the existing key handler only while a confirmation is open and focus is not in a field or on a button. New e2e checks: Enter in a text field does nothing, Enter records exactly one action, Cancel/Escape record nothing, double-click records one. e2e 23/23.
+
+## 2026-11-11 ~19:24 IST — Criterion D audit → PRODUCT.md / README corrections
+
+### Coding-assistant prompt #19 (key lines, verbatim)
+> # FINAL READ-ONLY AUDIT — CRITERION D: PRODUCT THINKING (20 MARKS) [...] It must not make unsupported claims.
+
+The assistant graded against the official PRODUCT.md questions in `ASSIGNMENT.md` (not the paraphrased four points) and found one claim the code contradicted: "never auto-apply answer keys in … statement-type questions", while R020 (a physics statement-type question) had its key auto-applied, and the code only restricts non-physics/chemistry/maths subjects. Also "revert it with one click" (now a confirmed Reject) and the unmeasured "fixed in minutes".
+
+### Coding-assistant prompt #20 (key lines, verbatim)
+> Implement the approved Criterion D documentation improvements based on the read-only audit. [...] Remove the claim that statement-type questions are never auto-applied. [...] Do not invent a new code rule.
+
+What changed: commit `1be514d` (after a read-only re-check and one more small round). PRODUCT.md names all six `auto:false` types, discloses precomputed AI, names faculty as primary users, describes the flow, and fits one A4 page at 11 pt. The assistant **did not use two parts of my suggested wording** because the guard does not support them: an option needs *one* blind solver to reproduce its value (not both), and the solvers confirm the final key a solution fix must reach, not the step itself.
+
+## 2026-11-11 ~19:41 IST — Reply wording: drafts, not sent
+
+### Coding-assistant prompt #21 (key lines, verbatim)
+> Replace "Confirm & send reply" and all related wording that implies the student reply is actually sent.
+
+What changed: commit `8dcf34e`. "Confirm decision"; hints say "The student reply remains a draft for faculty to copy"; the same claim in a routing-reason string in `labels.js` was fixed too. New e2e wording check; e2e 24/24.
+
+## 2026-11-11 ~19:45 IST — Criterion E audit → PROMPTS.md corrections
+
+### Coding-assistant prompt #22 (key lines, verbatim)
+> Now perform a thorough, READ-ONLY audit of Criterion E — `PROMPTS.md` (15 marks). [...] Never reconstruct a supposedly verbatim prompt from memory.
+
+Checked against the Claude Code session record (5,033 entries at the time, from the master brief onwards), `prompts.py` and its git history, and the 56-entry cache. All quoted prompts were verbatim and the product-prompt block matched the code. Gaps: judge and edit-repair *user* messages only described; "full example packets are in `cache/llm/`" was false (the cache stores responses only); paraphrases inside quotation marks in the version table; §3 covered only the first prompts; #2/#4 were assistant-written options; stale UI and test-count statements.
+
+### Coding-assistant prompt #23 (key lines, verbatim)
+> Fix only the verified gaps from the Criterion E audit [...] Do not invent or reconstruct prompts. Generate from source code.
+
+What changed: `scripts/gen_prompts_section.py` now replays the pipeline offline (cache only, 0 API calls) and prints the real R004 judge case, the real R009/R010 edit-repair request (both cache hits) and the batch separators; PROMPTS.md got exact version-table wording, the exact v1/v2 solver lines from git, later prompt excerpts, "selected option" labels and an updated design log.

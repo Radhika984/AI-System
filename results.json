@@ -128,7 +128,7 @@
     "route": "faculty_review",
     "confidence": 1.0,
     "evidence": "Option D is missing from the question HTML.",
-    "student_reply": "Thank you for your feedback. A teacher is restoring the missing option D to the question."
+    "student_reply": "Thank you for your feedback. We've sent this to a teacher to review."
   },
   {
     "reportId": "R010",
@@ -139,7 +139,7 @@
     "route": "faculty_review",
     "confidence": 1.0,
     "evidence": "Option D is missing from the question HTML.",
-    "student_reply": "Thank you for your feedback. A teacher is restoring the missing option D to the question."
+    "student_reply": "Thank you for your feedback. We've sent this to a teacher to review."
   },
   {
     "reportId": "R011",
@@ -210,7 +210,7 @@
     "route": "faculty_review",
     "confidence": 1.0,
     "evidence": "Options B and C are both '0 W'.",
-    "student_reply": "You are right that options B and C are identical. A teacher is reviewing the question to ensure all options are unique."
+    "student_reply": "You are right that options B and C are identical. We've sent this to a teacher to review."
   },
   {
     "reportId": "R016",
@@ -247,7 +247,7 @@
     "route": "faculty_review",
     "confidence": 0.7,
     "evidence": "The solution text mentions a wavelength of 5.47 Å, which does not match the 0.3 nm (3 Å) given in the question.",
-    "student_reply": "You are right; the solution text belongs to a different question. We are updating it to correctly reflect the calculation for 0.3 nm."
+    "student_reply": "You are right; the solution text belongs to a different question. We've sent this to a teacher to review."
   },
   {
     "reportId": "R019",
@@ -258,7 +258,7 @@
     "route": "faculty_review",
     "confidence": 0.7,
     "evidence": "The solution incorrectly uses 5.47 Å instead of the 0.3 nm provided in the stem.",
-    "student_reply": "We appreciate your feedback. The solution is being corrected to use the 0.3 nm wavelength given in the question instead of 5.47 Å."
+    "student_reply": "We appreciate your feedback. We've sent this to a teacher to review."
   },
   {
     "reportId": "R020",
@@ -279,12 +279,16 @@
     "reportId": "R021",
     "questionId": "68f21caf941cda588bc04365",
     "verdict": "defect",
-    "repair": "type_mismatch",
-    "edit": null,
+    "repair": "answer_key",
+    "edit": {
+      "field": "answer",
+      "find": "[\"\", \"B\"]",
+      "replace": "[\"B\"]"
+    },
     "route": "faculty_review",
     "confidence": 0.7,
     "evidence": "The reduction by factor 8 in 3 min implies T_half = 1 min, so mean life = 1/ln2 = 1.44 min. The key [\"\", \"B\"] is malformed and the type should be scq.",
-    "student_reply": "You are correct that only B is the right answer. A teacher is updating the question type and fixing the answer key."
+    "student_reply": "You are correct that only B is the right answer. We've sent this to a teacher to review."
   },
   {
     "reportId": "R022",
@@ -310,7 +314,7 @@
     "route": "faculty_review",
     "confidence": 1.0,
     "evidence": "The question is about action potentials (Neural Control) but is filed under 'The Living World'.",
-    "student_reply": "You are right, this question belongs in the Neural Control and Coordination chapter. A teacher is moving it to the correct section."
+    "student_reply": "You are right, this question belongs in the Neural Control and Coordination chapter. We've sent this to a teacher to review."
   },
   {
     "reportId": "R024",
@@ -336,7 +340,7 @@
     "route": "faculty_review",
     "confidence": 0.9,
     "evidence": "The question refers to a figure ('as shown in figure') which is missing from the record.",
-    "student_reply": "You are correct that the figure is missing. A teacher is adding the diagram to clarify the bubble sizes."
+    "student_reply": "You are correct that the figure is missing. We've sent this to a teacher to review."
   },
   {
     "reportId": "R026",
@@ -346,8 +350,8 @@
     "edit": null,
     "route": "faculty_review",
     "confidence": 0.8,
-    "evidence": "Outgroup analysis is a standard phylogenetic method included in the study of evolution.",
-    "student_reply": "Thanks for flagging this! A teacher will confirm whether it's in your syllabus; until then the question stays live, so it's fine to skip it if it's unfamiliar."
+    "evidence": "Student states the question is outside the syllabus. Syllabus scope is a faculty decision (taxonomy 'syllabus': faculty confirm, question stays live), so it is routed to faculty. Content check: both blind solvers chose the stored key B.",
+    "student_reply": "Thanks for flagging this! We've sent it to a teacher to confirm whether it's in your syllabus; until then the question stays live, so it's fine to skip it if it's unfamiliar."
   },
   {
     "reportId": "R027",
@@ -422,7 +426,7 @@
     "repair": null,
     "edit": null,
     "route": "no_change",
-    "confidence": 0.95,
+    "confidence": 0.7,
     "evidence": "The side length 7.203 m has 4 significant digits, so the area A must be rounded to 4 significant digits (311.3). Thus 10A = 3113.",
     "student_reply": "The side length 7.203 m has 4 significant digits. Therefore, the surface area A = 6 × (7.203)² = 311.299... must be rounded to 4 significant digits, which is 311.3."
   },
@@ -435,7 +439,7 @@
     "route": "faculty_review",
     "confidence": 0.7,
     "evidence": "Assertion is false (I = 2I0 for phase pi/2) and Reason is false (intensity is not always the sum).",
-    "student_reply": "For a phase difference of π/2, the resultant intensity is 2I₀, not I₀. A teacher is reviewing the question as both the assertion and reason appear to be incorrect."
+    "student_reply": "For a phase difference of π/2, the resultant intensity is 2I₀, not I₀. We've sent this to a teacher to review."
   },
   {
     "reportId": "R035",
@@ -488,7 +492,7 @@
     "repair": null,
     "edit": null,
     "route": "no_change",
-    "confidence": 0.7,
+    "confidence": 1.0,
     "evidence": "Student requested the question in Hindi.",
     "student_reply": "Thanks for asking! This question is currently available only in English, so it can't be switched to another language here."
   },
@@ -523,7 +527,7 @@
     "route": "faculty_review",
     "confidence": 0.7,
     "evidence": "The question is about displacement current in a capacitor, which belongs to Electromagnetic Waves, not Geometrical Optics.",
-    "student_reply": "You are right that displacement current belongs to the Electromagnetic Waves chapter. Thank you for the feedback; a teacher is now updating the chapter classification."
+    "student_reply": "You are right that displacement current belongs to the Electromagnetic Waves chapter. We've sent this to a teacher to review."
   },
   {
     "reportId": "R043",

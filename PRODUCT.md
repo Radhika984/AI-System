@@ -7,7 +7,7 @@
 How the design reflects this:
 - **The queue is ordered by harm to students, not arrival time.** First come wrong keys, unanswerable questions, and cases where the AI is unsure. Then questions students can't attempt (missing data, option or figure), then wrong solutions, then cosmetic issues.
 - **A provable wrong key is fixed in minutes.** Two blind solvers on different models, which never see the key or the comment, must agree, and code re-checks their arithmetic. Faculty then spot-check the fix and can revert it with one click.
-- **The reply tells the student exactly where they stood.** For R004 ("8225 aana chahiye") it says the key *was* wrong, but the answer is 4800.
+- **The reply shows the working.** For R004 ("8225 aana chahiye") the student gets P = (1/3)ρv² = 4800 N/m² and is told the key was corrected to D. It doesn't say outright that their 8225 is wrong.
 
 ## 2. What I would never let the AI auto-apply
 

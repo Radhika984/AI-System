@@ -37,7 +37,7 @@ def run_solvers(view: dict, client: LLMClient) -> dict:
         except (ValidationError, ValueError, TypeError) as e:
             rec = {"error": f"invalid solver output: {str(e)[:200]}", "model": model}
         out[name] = rec
-        out[name]["numeric_check"] = numeric_check(rec)
+        out[name]["numeric_check"] = numeric_check(rec, view["type"])
     return out
 
 
@@ -78,13 +78,29 @@ def run_solvers_batch(views: list[dict], client: LLMClient, log=print) -> dict[s
                         rec.update(model=resp.model, cached=resp.cached, batched=False)
                     except (ValidationError, ValueError, TypeError) as e:
                         rec = {"error": f"invalid solver output: {str(e)[:200]}", "model": model}
-                rec["numeric_check"] = numeric_check(rec)
+                rec["numeric_check"] = numeric_check(rec, v["type"])
                 out[v["_id"]][name] = rec
     return out
 
 
-def numeric_check(rec: dict) -> dict:
-    """Re-evaluate the solver's own expression with the restricted evaluator."""
+# Numerical (integer-type) answers are exact: agreement allows only float-representation noise.
+INTEGER_ABS_TOL = 1e-6
+# Option questions: printed options are rounded (16.71 eV is option "16.8 eV"), so a solver's
+# expression may differ slightly from the option value it claims.
+OPTION_REL_TOL = 0.03
+
+
+def _decimals(text: str) -> int:
+    m = re.search(r"-?\d+(?:\.(\d+))?", str(text or ""))
+    return len(m.group(1)) if m and m.group(1) else 0
+
+
+def numeric_check(rec: dict, qtype: str = "scq", legacy: bool = False) -> dict:
+    """Re-evaluate the solver's own expression with the restricted evaluator.
+
+    integerQuestion: the evaluated value must ROUND to the claimed answer at the claimed
+    precision (3112.99 -> 3113 matches; 3112.99 -> 3114 does not).
+    scq / mcq: relative tolerance OPTION_REL_TOL, because options are printed rounded."""
     expr = rec.get("expression")
     if not expr:
         return {"status": "no_expression"}
@@ -95,7 +111,14 @@ def numeric_check(rec: dict) -> dict:
     claimed = rec.get("numeric_value")
     if claimed is None:
         return {"status": "evaluated", "value": val}
-    return {"status": "match" if close(val, claimed, rel=0.03) else "mismatch", "value": val, "claimed": claimed}
+    if legacy:  # v1 tolerance; used ONLY to rebuild judge-v1 packets byte-identically (see judge_packet_view)
+        return {"status": "match" if close(val, claimed, rel=0.03) else "mismatch", "value": val, "claimed": claimed}
+    if qtype == "integerQuestion":
+        d = _decimals(rec.get("final_answer"))
+        ok = abs(val - claimed) <= 0.5 * 10 ** (-d) + INTEGER_ABS_TOL and round(val, d) == round(claimed, d)
+    else:
+        ok = close(val, claimed, rel=OPTION_REL_TOL)
+    return {"status": "match" if ok else "mismatch", "value": val, "claimed": claimed}
 
 
 def canon_answer(qtype: str, raw: str | None, options: dict | None = None):
@@ -111,22 +134,24 @@ def canon_answer(qtype: str, raw: str | None, options: dict | None = None):
     return letters[0] if letters else None
 
 
-def same(qtype: str, a, b) -> bool:
+def same(qtype: str, a, b, legacy: bool = False) -> bool:
     if a is None or b is None:
         return False
-    if qtype == "integerQuestion":
+    if qtype == "integerQuestion" and legacy:
         return close(float(a), float(b), rel=0.01)
+    if qtype == "integerQuestion":
+        return abs(float(a) - float(b)) <= INTEGER_ABS_TOL  # exact: 3113 != 3114
     return a == b
 
 
-def agreement(q: dict, solves: dict) -> dict:
+def agreement(q: dict, solves: dict, legacy: bool = False) -> dict:
     qtype = q["questionType"]
     b = N.body(q)
     key, _ = N.normalize_answer(qtype, b.get("answer"))
     key_c = float(key) if qtype == "integerQuestion" and re.fullmatch(r"-?\d+(\.\d+)?", str(key)) else key
     ans = {k: canon_answer(qtype, v.get("final_answer")) for k, v in solves.items() if "error" not in v}
     vals = list(ans.values())
-    agree = len(vals) == 2 and same(qtype, vals[0], vals[1])
+    agree = len(vals) == 2 and same(qtype, vals[0], vals[1], legacy)
     agreed = vals[0] if agree else None
     checks = [v.get("numeric_check", {}).get("status") for v in solves.values()]
     # numeric_ok: True  = at least one solver's own arithmetic, re-evaluated by the restricted
@@ -144,7 +169,7 @@ def agreement(q: dict, solves: dict) -> dict:
         "answer": _fmt(qtype, agreed),
         "answers": {k: _fmt(qtype, v) for k, v in ans.items()},
         "stored_key": _fmt(qtype, key_c),
-        "matches_key": agree and same(qtype, agreed, key_c),
+        "matches_key": agree and same(qtype, agreed, key_c, legacy),
         "numeric_ok": numeric_ok,
     }
 
@@ -157,3 +182,16 @@ def _fmt(qtype: str, v):
     if qtype == "integerQuestion":
         return str(int(v)) if float(v).is_integer() else str(v)
     return v
+
+
+def judge_packet_view(q: dict, solves: dict) -> tuple[dict, dict]:
+    """Solver summary as shown to the judge.
+
+    The judge-v1 prompt (cached, 2026-11-11) was sent the v1 numeric summary (1% integer agreement,
+    3% arithmetic re-check). To replay it from cache with zero API calls, judge-v1 packets are rebuilt
+    from that same v1 summary. Everything AFTER the judge - agreement, SPEC rule 5, guard, routing -
+    uses the strict v2 checks (exact integer answers; arithmetic must round to the claimed answer).
+    A future judge-v2 prompt should be sent the strict summary instead."""
+    legacy = {k: {**v, "numeric_check": numeric_check(v, q["questionType"], legacy=True)} if "error" not in v else v
+              for k, v in solves.items()}
+    return legacy, agreement(q, legacy, legacy=True)

@@ -70,9 +70,76 @@ def test_rule5_agreement_is_not_dispute():
     assert solvers_dispute({"answers": {"A": "B", "B": "B"}}, {"A": {}, "B": {}}, "no_error", None) is None
 
 
-def test_rule5_respects_numeric_tolerance():
-    # R033: 3113 vs 3112.99 are the same answer within solver.agreement's 1% tolerance
-    assert solvers_dispute({"agree": True, "answers": {"A": "3113", "B": "3112.99"}}, {"A": {}, "B": {}}, "no_error", None) is None
+def test_rule5_skips_when_solvers_agree():
+    assert solvers_dispute({"agree": True, "answers": {"A": "8", "B": "8"}}, {"A": {}, "B": {}}, "no_error", None) is None
+
+
+# ---------------- integer answers are exact (regression: R033 solver B answered 3114, key 3113)
+def test_integer_agreement_is_exact_r033(qof):
+    # Real cached solves for R033: A "3113" (expression uses round() -> refused), B "3114" with
+    # expression 10*6*7.203**2 = 3112.99 (which rounds to 3113, not to B's claimed 3114).
+    a_rec = solve("3113", 3113.0, "10 * round(6 * 7.203**2, 1)")
+    b_rec = {"final_answer": "3114", "numeric_value": 3114.0, "expression": "10 * 6 * 7.203**2"}
+    b_rec["numeric_check"] = S.numeric_check(b_rec, "integerQuestion")
+    assert b_rec["numeric_check"]["status"] == "mismatch"          # 3112.99 does not round to 3114
+    a = S.agreement(qof("R033"), {"A": a_rec, "B": b_rec})
+    assert not a["agree"] and a["answers"] == {"A": "3113", "B": "3114"}
+    assert solvers_dispute(a, {"A": a_rec, "B": b_rec}, "no_error", None) == "A=3113, B=3114"
+
+
+def test_integer_tolerances_only_absorb_float_noise():
+    assert S.same("integerQuestion", 8, 8.0) and S.same("integerQuestion", 0.08, 0.08000000001)
+    assert not S.same("integerQuestion", 100, 101) and not S.same("integerQuestion", 3113, 3114)
+    ok = lambda claim, expr: S.numeric_check({"final_answer": claim, "numeric_value": float(claim), "expression": expr},
+                                             "integerQuestion")["status"]
+    assert ok("3113", "6*7.203**2*10") == "match"        # 3112.99 rounds to 3113
+    assert ok("3114", "6*7.203**2*10") == "mismatch"
+    assert ok("8", "(1/5e-3)*(2e-3*0.5-1.5e-3*0.4)*100") == "match"
+    assert ok("1", "(1/2*1/2+1/8*2)*2") == "match"         # R005 solver B
+    assert ok("0.08", "0.0812") == "match"                 # rounds to 0.08 at the claimed 2 d.p.
+    assert ok("0.08", "0.0862") == "mismatch"              # rounds to 0.09: claimed precision is honoured
+    # option questions keep the rounded-option tolerance (16.71 eV computed, option "16.8 eV")
+    assert S.numeric_check({"final_answer": "B", "numeric_value": 16.8, "expression": "16.71"}, "scq")["status"] == "match"
+
+
+def test_judge_packet_view_is_v1_only_for_the_packet(qof):
+    b_rec = {"final_answer": "3114", "numeric_value": 3114.0, "expression": "10 * 6 * 7.203**2"}
+    a_rec = {"final_answer": "3113", "numeric_value": 3113.0, "expression": None}
+    pk_solves, pk_agree = S.judge_packet_view(qof("R033"), {"A": a_rec, "B": b_rec})
+    assert pk_agree["agree"] is True                          # what judge-v1 was actually shown (cached input)
+    assert pk_solves["B"]["numeric_check"]["status"] == "match"
+    strict = {"A": {**a_rec, "numeric_check": S.numeric_check(a_rec, "integerQuestion")},
+              "B": {**b_rec, "numeric_check": S.numeric_check(b_rec, "integerQuestion")}}
+    assert S.agreement(qof("R033"), strict)["agree"] is False  # what routing / rule 5 use
+
+
+# ---------------- SPEC §3 rule 5 scope: defects and no_error only
+def test_rule5_scope_constant():
+    from app.pipeline import RULE5_NON_DEFECT_VERDICTS
+    assert RULE5_NON_DEFECT_VERDICTS == {"no_error"}
+
+
+# ---------------- faculty-review replies: no claims that an action is underway or done
+def test_pending_review_reply_removes_action_claims():
+    from app.pipeline import FALLBACK_REPLY, PENDING_REVIEW_SENTENCE, _ACTION_CLAIM, pending_review_reply
+    for before in ["Thank you. A teacher is restoring the missing option D to the question.",
+                   "You are right. We are updating it to reflect 0.3 nm.",
+                   "Thanks. The solution is being corrected.",
+                   "Right. A teacher is now updating the chapter classification."]:
+        after, dropped = pending_review_reply(before)
+        assert dropped and after.endswith(PENDING_REVIEW_SENTENCE) and not _ACTION_CLAIM.search(after)
+    same, dropped = pending_review_reply("You are right that options B and C are identical.")
+    assert not dropped and same == "You are right that options B and C are identical."
+    for k, t in FALLBACK_REPLY.items():
+        if k != "already_fixed":  # already_fixed states a completed fix that errorHistory proves
+            assert not _ACTION_CLAIM.search(t), k
+
+
+# ---------------- coded verdicts carry evidence that supports them (R026)
+def test_override_evidence_supports_syllabus_verdict():
+    from app.pipeline import override_evidence
+    ev = override_evidence("syllabus", {"agree": True, "matches_key": True, "stored_key": "B"})
+    assert "outside the syllabus" in ev and "faculty" in ev and "stored key B" in ev
 
 
 # ---------------- student replies never promise uncommitted features (R039)

@@ -39,7 +39,12 @@ taxonomy.json ┘   malformed keys, missing/blank/duplicate │
                            React console (Vite + Tailwind, DOMPurify + native MathML)
 ```
 
-* **Two blind solvers** run on *different* free models, `gemini-3-flash-preview` and `gemini-3.1-flash-lite`, so their errors are more independent than two runs of one model. Solver B, the lighter model, is the weaker one: the two solvers' answers differ on 12 of 39 questions. On 3 of those (R006, R011, R025) a solver couldn't answer because content is missing, which is evidence for the defect. On the other 9 questions (10 reports) the case is escalated rather than trusted (SPEC §3 rule 5). They get only the stem and options, never the key, the stored solution or the student's comment. Each also returns one arithmetic expression, which `safe_eval.py` (an AST whitelist, never `eval`) recomputes.
+* **Two blind solvers** run on *different* free models, `gemini-3-flash-preview` and `gemini-3.1-flash-lite`, so their errors are more independent than two runs of one model. Solver B, the lighter model, is the weaker one: the two solvers' answers differ on 13 of 39 questions.
+  - On 3 of those (R006, R011, R025) a solver couldn't answer because content is missing, which is evidence for the defect.
+  - R039 is a language request, which SPEC §3 rule 5 doesn't cover.
+  - On the other 9 questions (10 reports) the case is escalated rather than trusted (rule 5).
+
+  Integer answers must match exactly (R033: 3113 vs 3114 is a disagreement). They get only the stem and options, never the key, the stored solution or the student's comment. Each also returns one arithmetic expression, which `safe_eval.py` (an AST whitelist, never `eval`) recomputes.
 * **The judge** (`gemini-3-flash-preview`) sees one question at a time with *all* of its reports grouped. It also gets the deterministic flags, both solves, the raw HTML (for exact edit anchors) and each comment escaped inside `<student_comment>` tags, labelled as untrusted data.
 * **The guard** (`guard.py`) checks every proposed edit. The field must be in the repair's scope (from `taxonomy.json`), and `find` must occur exactly once. The edit is dry-run on a copy and re-parsed with `lxml`, and no option may be lost. Each repair type has its own rule: spelling moves letters only, `exam_reference` and `noise` only delete, `answer_form` only adds, `stem_data` values must appear in the stored solution, `option_repair` may not touch the stem and may only restore the keyed option, and no edit may introduce raw LaTeX. A failed edit gets one LLM repair attempt, which is guarded again, and is dropped if it still fails.
 * **Routing** is deterministic code ([SPEC §3](SPEC.md)), not the model. A non-defect becomes `no_change`. An `auto:false` repair goes to `faculty_review` with `edit: null`. An `auto:true` repair is auto-applied only if:
@@ -159,4 +164,10 @@ It then stops everything and confirms `data/` is unchanged. It isn't collected b
 * **Render free tier has an ephemeral disk.** Faculty actions and the audit log persist across requests and survived a local process restart in testing. On Render's free tier they are lost on redeploy or spin-down, which resets to the clean demo state. A production version would use a database.
 * **Access control is a single shared passcode, not per-user accounts.** The name typed in the header is recorded as the audit actor but isn't authenticated. Wrong passcodes and wrong reset tokens share one rate limit: 8 failures per 10 minutes per client, after which even the correct passcode gets 429 until the window passes. The limiter is in-memory, so it resets when the process restarts.
 * **Audit timestamps for system auto-applies** show when the API process loaded the results (or when the demo was last reset), not when the offline triage ran.
-* **`results.json` is the engine's output, with no hand edits.** Every non-LLM decision is a coded rule, logged per report under `overrides` in `artifacts/triage_details.json` and explained in `PROMPTS.md`. These cover: R017 (verified already-fixed), R026 (syllabus claims go to faculty), the 10 rule-5 confidence caps, and R039 (a reply that promised an uncommitted feature was replaced by a factual template). Running `LLM_OFFLINE=1 python scripts/run_triage.py --all` reproduces the file byte-for-byte.
+* **`results.json` is the engine's output, with no hand edits.** Every non-LLM decision is a coded rule, logged per report under `overrides` in `artifacts/triage_details.json` and explained in `PROMPTS.md`. These cover:
+  - R017: verified already-fixed.
+  - R026: syllabus claims go to faculty, with evidence that supports that verdict.
+  - R021: a precheck-proven malformed key is classified `answer_key`, and its edit is the stored key's own normalisation; it still goes to faculty.
+  - The 10 rule-5 confidence caps.
+  - R039: a reply that promised an uncommitted feature was replaced.
+  - 11 faculty-review replies: sentences claiming an action was underway were replaced with "We've sent this to a teacher to review". Running `LLM_OFFLINE=1 python scripts/run_triage.py --all` reproduces the file byte-for-byte.

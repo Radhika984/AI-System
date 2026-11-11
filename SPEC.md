@@ -52,11 +52,18 @@ reportId, questionId, verdict, repair, edit, route, confidence, evidence, studen
    * `solution_fix` / `solution_missing`: the edited solution must still end at the keyed answer the solvers agree on.
 4. Injection-flagged reports are never auto-applied; their comment is only ever shown to the LLM as quoted data.
 5. Disagreement between solvers, or solver vs key when the judge says `no_error`, lowers confidence and escalates (`faculty_review`, or priority 1 in the console for a `no_error`) rather than guessing. Implemented in `pipeline.solvers_dispute` and `finalize`:
-   * solvers agree but contradict the key on a non-defect: confidence ≤ 0.6, console priority 1;
-   * solvers give different definite answers, for any verdict: confidence ≤ 0.7, which is below the 0.85 auto-apply threshold, so defects go to `faculty_review`; non-defects stay `no_change` (schema) and are raised to console priority 1 "AI unsure";
+   * scope: the verdicts this rule names, **defects** and **`no_error`**. language_mode / display_issue / app_issue / already_fixed / not_actionable are outside it and are logged "rule 5 not applied";
+   * solvers agree but contradict the key on a `no_error`: confidence ≤ 0.6, console priority 1;
+   * solvers give different definite answers: confidence ≤ 0.7, which is below the 0.85 auto-apply threshold, so defects go to `faculty_review`; `no_error` stays `no_change` (schema) and is raised to console priority 1 "AI unsure";
+   * "different" is exact for integer answers (R033: 3113 vs 3114); a solver's arithmetic must round to its claimed integer answer; option questions allow 3% because printed options are rounded;
    * a solver abstains if it has no usable answer, or if it reported missing content while the verdict is a missing-content defect (stem_data, option_repair, diagram);
    * the verdict is never changed by this rule.
-6. Deterministic verdict overrides (logged per report): verified `already_fixed` (errorHistory after the report and the old text gone); a syllabus claim is always `defect/syllabus/faculty_review` (taxonomy: "Faculty confirm").
+6. Deterministic overrides (logged per report):
+   * verified `already_fixed` (errorHistory after the report and the old text gone);
+   * a syllabus claim is always `defect/syllabus/faculty_review` (taxonomy: "Faculty confirm"), with evidence stating that rule;
+   * a precheck-proven malformed key with judge repair `type_mismatch` → `answer_key` (taxonomy: "wrong or malformed"), edit = the stored key's normalisation;
+   * no reply may promise uncommitted features;
+   * on `faculty_review`, no reply may claim an action is underway or done.
 
 ## 4. Pipeline
 

@@ -75,7 +75,8 @@
     "reply_if_review": "You are correct. The total flux calculation results in n = 1. A teacher is updating the answer key.",
     "judge_verdict": "defect",
     "judge_repair": "answer_key",
-    "judge_confidence": 1.0
+    "judge_confidence": 1.0,
+    "judge_evidence": "Total flux = (q/2)/(2ε₀) + (2q)/(8ε₀) = q/(2ε₀), which implies n=1."
    }
   }
  },
@@ -152,7 +153,8 @@
     "reply_if_review": "The calculation shows that μ = 0.8. From the first condition, F = 10 + 100μ. Substituting this into the second condition (2F - 100μ = 100) gives 2(10 + 100μ) - 100μ = 100, which simplifies to 100μ = 80.",
     "judge_verdict": "no_error",
     "judge_repair": null,
-    "judge_confidence": 1.0
+    "judge_confidence": 1.0,
+    "judge_evidence": "Solving the system F - 100μ = 10 and 2F - 100μ = 100 yields μ = 0.8."
    }
   }
  },
@@ -228,7 +230,8 @@
     "reply_if_review": "You are right. We are correcting the spelling of 'Epithelial tissue' in the options. Thank you!",
     "judge_verdict": "defect",
     "judge_repair": "spelling",
-    "judge_confidence": 1.0
+    "judge_confidence": 1.0,
+    "judge_evidence": "Option A is spelled 'Epithellial tisue' instead of 'Epithelial tissue'."
    }
   }
  },
@@ -307,7 +310,8 @@
     "reply_if_review": "You are correct. The calculation V = √(40² + (60-30)²) results in 50 V, which is option A. A teacher is updating the answer key.",
     "judge_verdict": "defect",
     "judge_repair": "answer_key",
-    "judge_confidence": 1.0
+    "judge_confidence": 1.0,
+    "judge_evidence": "Calculation V = √(40² + 30²) = 50 V matches option A, but key is C."
    },
    "R003": {
     "flags": [],
@@ -323,7 +327,8 @@
     "reply_if_review": "You are correct. The calculation V = √(40² + (60-30)²) results in 50 V, which is option A. A teacher is updating the answer key.",
     "judge_verdict": "defect",
     "judge_repair": "answer_key",
-    "judge_confidence": 1.0
+    "judge_confidence": 1.0,
+    "judge_evidence": "Calculation V = √(40² + 30²) = 50 V matches option A, but key is C."
    },
    "R001": {
     "flags": [],
@@ -339,7 +344,8 @@
     "reply_if_review": "You are correct. The calculation V = √(40² + (60-30)²) results in 50 V, which is option A. A teacher is updating the answer key.",
     "judge_verdict": "defect",
     "judge_repair": "answer_key",
-    "judge_confidence": 1.0
+    "judge_confidence": 1.0,
+    "judge_evidence": "Calculation V = √(40² + 30²) = 50 V matches option A, but key is C."
    }
   }
  },
@@ -418,7 +424,8 @@
     "reply_if_review": "The pressure is calculated as P = (1/3)ρv² = (1/3)(0.09)(400²) = 4800 N/m². A teacher is verifying the update to the answer key.",
     "judge_verdict": "defect",
     "judge_repair": "answer_key",
-    "judge_confidence": 1.0
+    "judge_confidence": 1.0,
+    "judge_evidence": "Calculation P = (1/3)(0.09)(400^2) = 4800 N/m^2 matches option D, but the key is A."
    }
   }
  },
@@ -501,7 +508,8 @@
     "reply_if_review": "You are correct; the inductance value was missing in the question. A teacher is adding the value (95.5 mH) to the problem statement.",
     "judge_verdict": "defect",
     "judge_repair": "stem_data",
-    "judge_confidence": 1.0
+    "judge_confidence": 1.0,
+    "judge_evidence": "Inductance value is missing in the stem but used as 95.5 mH in the solution."
    },
    "R007": {
     "flags": [],
@@ -517,7 +525,8 @@
     "reply_if_review": "You are correct; the inductance value was missing in the question. A teacher is adding the value (95.5 mH) to the problem statement.",
     "judge_verdict": "defect",
     "judge_repair": "stem_data",
-    "judge_confidence": 1.0
+    "judge_confidence": 1.0,
+    "judge_evidence": "Inductance value is missing in the stem but used as 95.5 mH in the solution."
    }
   }
  },
@@ -580,7 +589,8 @@
    "R034": {
     "flags": [],
     "overrides": [
-     "confidence 0.90->0.7 (blind solvers disagree: A=D, B=C)"
+     "confidence 0.90->0.7 (blind solvers disagree: A=D, B=C)",
+     "student_reply: removed action claim(s) while faculty approval is pending: ['A teacher is reviewing the question as both the assertion and reason appear to be incorrect.']"
     ],
     "route_reasons": [
      "unsound is auto:false in taxonomy — faculty must author/approve"
@@ -593,7 +603,8 @@
     "reply_if_review": "For a phase difference of π/2, the resultant intensity is 2I₀, not I₀. A teacher is reviewing the question as both the assertion and reason appear to be incorrect.",
     "judge_verdict": "defect",
     "judge_repair": "unsound",
-    "judge_confidence": 0.9
+    "judge_confidence": 0.9,
+    "judge_evidence": "Assertion is false (I = 2I0 for phase pi/2) and Reason is false (intensity is not always the sum)."
    }
   }
  },
@@ -667,7 +678,9 @@
   "reports": {
    "R010": {
     "flags": [],
-    "overrides": [],
+    "overrides": [
+     "student_reply: removed action claim(s) while faculty approval is pending: ['A teacher is restoring the missing option D to the question.']"
+    ],
     "route_reasons": [
      "edit writes option(s) ['D'] but only the keyed option ['C'] may be restored; a missing distractor is authored content"
     ],
@@ -682,11 +695,14 @@
     "reply_if_review": "Thank you for your feedback. A teacher is restoring the missing option D to the question.",
     "judge_verdict": "defect",
     "judge_repair": "option_repair",
-    "judge_confidence": 1.0
+    "judge_confidence": 1.0,
+    "judge_evidence": "Option D is missing from the question HTML."
    },
    "R009": {
     "flags": [],
-    "overrides": [],
+    "overrides": [
+     "student_reply: removed action claim(s) while faculty approval is pending: ['A teacher is restoring the missing option D to the question.']"
+    ],
     "route_reasons": [
      "edit writes option(s) ['D'] but only the keyed option ['C'] may be restored; a missing distractor is authored content"
     ],
@@ -701,7 +717,8 @@
     "reply_if_review": "Thank you for your feedback. A teacher is restoring the missing option D to the question.",
     "judge_verdict": "defect",
     "judge_repair": "option_repair",
-    "judge_confidence": 1.0
+    "judge_confidence": 1.0,
+    "judge_evidence": "Option D is missing from the question HTML."
    }
   }
  },
@@ -778,7 +795,8 @@
     "reply_if_review": "Thank you for your report. The spelling error 'mere' has already been corrected to 'more' in the current version of the question.",
     "judge_verdict": "already_fixed",
     "judge_repair": null,
-    "judge_confidence": 1.0
+    "judge_confidence": 1.0,
+    "judge_evidence": "errorHistory shows 'mere' -> 'more' was fixed on 2026-11-07."
    }
   }
  },
@@ -858,7 +876,8 @@
     "reply_if_review": "The calculated shift is 0.08 meters. Since the question asks for the answer in centimeters, we convert it: 0.08 m = 8 cm.",
     "judge_verdict": "no_error",
     "judge_repair": null,
-    "judge_confidence": 1.0
+    "judge_confidence": 1.0,
+    "judge_evidence": "Calculation: 0.08 m = 8 cm. The question specifically asks for the shift in cm."
    }
   }
  },
@@ -925,7 +944,8 @@
     ],
     "overrides": [
      "verdict no_error->defect/syllabus (syllabus scope is a faculty decision)",
-     "student_reply replaced by template (verdict overridden)"
+     "student_reply replaced by template (verdict overridden)",
+     "evidence replaced to support the rule-set verdict (judge's original evidence kept in details)"
     ],
     "route_reasons": [
      "syllabus is auto:false in taxonomy — faculty must author/approve"
@@ -938,7 +958,8 @@
     "reply_if_review": "Outgroup analysis is a standard method in evolutionary biology used to determine ancestral traits. It is within the scope of the evolution chapter for competitive exams.",
     "judge_verdict": "no_error",
     "judge_repair": null,
-    "judge_confidence": 0.8
+    "judge_confidence": 0.8,
+    "judge_evidence": "Outgroup analysis is a standard phylogenetic method included in the study of evolution."
    }
   }
  },
@@ -1005,7 +1026,8 @@
    "R042": {
     "flags": [],
     "overrides": [
-     "confidence 1.00->0.7 (blind solvers disagree: A=C, B=B)"
+     "confidence 1.00->0.7 (blind solvers disagree: A=C, B=B)",
+     "student_reply: removed action claim(s) while faculty approval is pending: ['Thank you for the feedback; a teacher is now updating the chapter classification.']"
     ],
     "route_reasons": [
      "wrong_chapter is auto:false in taxonomy — faculty must author/approve"
@@ -1018,7 +1040,8 @@
     "reply_if_review": "You are right that displacement current belongs to the Electromagnetic Waves chapter. Thank you for the feedback; a teacher is now updating the chapter classification.",
     "judge_verdict": "defect",
     "judge_repair": "wrong_chapter",
-    "judge_confidence": 1.0
+    "judge_confidence": 1.0,
+    "judge_evidence": "The question is about displacement current in a capacitor, which belongs to Electromagnetic Waves, not Geometrical Optics."
    }
   }
  },
@@ -1078,7 +1101,9 @@
   "reports": {
    "R023": {
     "flags": [],
-    "overrides": [],
+    "overrides": [
+     "student_reply: removed action claim(s) while faculty approval is pending: ['A teacher is moving it to the correct section.']"
+    ],
     "route_reasons": [
      "wrong_chapter is auto:false in taxonomy — faculty must author/approve"
     ],
@@ -1090,7 +1115,8 @@
     "reply_if_review": "You are right, this question belongs in the Neural Control and Coordination chapter. A teacher is moving it to the correct section.",
     "judge_verdict": "defect",
     "judge_repair": "wrong_chapter",
-    "judge_confidence": 1.0
+    "judge_confidence": 1.0,
+    "judge_evidence": "The question is about action potentials (Neural Control) but is filed under 'The Living World'."
    }
   }
  },
@@ -1169,7 +1195,8 @@
     "reply_if_review": "The question and answer key are correct. If your selection was recorded incorrectly, it might be due to a temporary connection or interface issue.",
     "judge_verdict": "app_issue",
     "judge_repair": null,
-    "judge_confidence": 1.0
+    "judge_confidence": 1.0,
+    "judge_evidence": "The student reports a selection error ('I clicked A but it saved B') while the content itself is correct."
    }
   }
  },
@@ -1254,7 +1281,8 @@
     "reply_if_review": "Thank you for pointing this out. We are fixing the display error so the fraction appears correctly as 7/8.",
     "judge_verdict": "defect",
     "judge_repair": "markup_leak",
-    "judge_confidence": 1.0
+    "judge_confidence": 1.0,
+    "judge_evidence": "Raw LaTeX '\\frac{7}{8}' is present in the question stem."
    }
   }
  },
@@ -1326,7 +1354,8 @@
     "reply_if_review": "The question is correct. Golden rice is genetically modified to produce beta-carotene, which the body converts to Vitamin A, helping prevent deficiency-related blindness.",
     "judge_verdict": "no_error",
     "judge_repair": null,
-    "judge_confidence": 1.0
+    "judge_confidence": 1.0,
+    "judge_evidence": "Golden rice is specifically engineered to provide Vitamin A precursors, which prevents associated blindness."
    }
   }
  },
@@ -1406,7 +1435,8 @@
     "reply_if_review": "The potential at point P is 22 V and at point S is 8 V. The question asks for the potential difference between them, which is 22 - 8 = 14 V.",
     "judge_verdict": "no_error",
     "judge_repair": null,
-    "judge_confidence": 1.0
+    "judge_confidence": 1.0,
+    "judge_evidence": "V_P = (16/2)*(3 - 0.25) = 22 V and V_S = 16/2 = 8 V. The difference is 22 - 8 = 14 V."
    }
   }
  },
@@ -1479,7 +1509,8 @@
     "reply_if_review": "Equating the formulas for range and height gives tan θ = 4. You might have used the condition for the range being twice the height by mistake.",
     "judge_verdict": "no_error",
     "judge_repair": null,
-    "judge_confidence": 1.0
+    "judge_confidence": 1.0,
+    "judge_evidence": "Equating R = (u^2 sin 2θ)/g and H = (u^2 sin^2 θ)/(2g) yields 2 sin θ cos θ = sin^2 θ / 2, which simplifies to tan θ = 4."
    }
   }
  },
@@ -1555,7 +1586,8 @@
     "reply_if_review": "Thank you for pointing this out. We are correcting the spelling of 'plexus' in the options.",
     "judge_verdict": "defect",
     "judge_repair": "spelling",
-    "judge_confidence": 1.0
+    "judge_confidence": 1.0,
+    "judge_evidence": "Option D contains the typo 'plexux' instead of 'plexus'."
    }
   }
  },
@@ -1626,7 +1658,9 @@
   "reports": {
    "R015": {
     "flags": [],
-    "overrides": [],
+    "overrides": [
+     "student_reply: removed action claim(s) while faculty approval is pending: ['A teacher is reviewing the question to ensure all options are unique.']"
+    ],
     "route_reasons": [
      "identical_options is auto:false in taxonomy — faculty must author/approve"
     ],
@@ -1638,7 +1672,8 @@
     "reply_if_review": "You are right that options B and C are identical. A teacher is reviewing the question to ensure all options are unique.",
     "judge_verdict": "defect",
     "judge_repair": "identical_options",
-    "judge_confidence": 1.0
+    "judge_confidence": 1.0,
+    "judge_evidence": "Options B and C are both '0 W'."
    }
   }
  },
@@ -1718,7 +1753,8 @@
     "reply_if_review": "Thank you for pointing this out. While the answer key is correct, the final line of the solution contains a calculation error that we are currently fixing.",
     "judge_verdict": "defect",
     "judge_repair": "solution_fix",
-    "judge_confidence": 1.0
+    "judge_confidence": 1.0,
+    "judge_evidence": "The calculation 800 = 2 * a^2 correctly implies a = 20, but the solution text concludes with a = 40 cm."
    }
   }
  },
@@ -1790,7 +1826,8 @@
    "R018": {
     "flags": [],
     "overrides": [
-     "confidence 1.00->0.7 (blind solvers disagree: A=C, B=A)"
+     "confidence 1.00->0.7 (blind solvers disagree: A=C, B=A)",
+     "student_reply: removed action claim(s) while faculty approval is pending: ['We are updating it to correctly reflect the calculation for 0.3 nm.']"
     ],
     "route_reasons": [
      "guard: no edit proposed",
@@ -1808,12 +1845,14 @@
     "reply_if_review": "You are right; the solution text belongs to a different question. We are updating it to correctly reflect the calculation for 0.3 nm.",
     "judge_verdict": "defect",
     "judge_repair": "solution_fix",
-    "judge_confidence": 1.0
+    "judge_confidence": 1.0,
+    "judge_evidence": "The solution text mentions a wavelength of 5.47 Å, which does not match the 0.3 nm (3 Å) given in the question."
    },
    "R019": {
     "flags": [],
     "overrides": [
-     "confidence 1.00->0.7 (blind solvers disagree: A=C, B=A)"
+     "confidence 1.00->0.7 (blind solvers disagree: A=C, B=A)",
+     "student_reply: removed action claim(s) while faculty approval is pending: ['The solution is being corrected to use the 0.3 nm wavelength given in the question instead of 5.47 Å.']"
     ],
     "route_reasons": [
      "guard: no edit proposed",
@@ -1831,7 +1870,8 @@
     "reply_if_review": "We appreciate your feedback. The solution is being corrected to use the 0.3 nm wavelength given in the question instead of 5.47 Å.",
     "judge_verdict": "defect",
     "judge_repair": "solution_fix",
-    "judge_confidence": 1.0
+    "judge_confidence": 1.0,
+    "judge_evidence": "The solution incorrectly uses 5.47 Å instead of the 0.3 nm provided in the stem."
    }
   }
  },
@@ -1899,21 +1939,22 @@
      }
     ],
     "overrides": [
-     "confidence 1.00->0.7 (blind solvers disagree: A=A, B=B)",
+     "rule 5 not applied: verdict language_mode is outside SPEC §3 rule 5 (defects and no_error only); solvers disagreed (A=A, B=B)",
      "student_reply replaced by template (unverified promise: 'working on')"
     ],
     "route_reasons": [
      "verdict language_mode is not a defect"
     ],
     "guard_log": [],
-    "needs_attention": true,
-    "attention_reason": "blind solvers disagree (A=A, B=B)",
+    "needs_attention": false,
+    "attention_reason": null,
     "comment": "Hindi me question chahiye",
     "reply_if_fixed": "Currently, our questions are provided in English. We are working on adding support for other languages in the future.",
     "reply_if_review": "Currently, our questions are provided in English. We are working on adding support for other languages in the future.",
     "judge_verdict": "language_mode",
     "judge_repair": null,
-    "judge_confidence": 1.0
+    "judge_confidence": 1.0,
+    "judge_evidence": "Student requested the question in Hindi."
    }
   }
  },
@@ -1994,7 +2035,8 @@
     "reply_if_review": "Thank you for your feedback. We are removing the exam reference from the question text.",
     "judge_verdict": "defect",
     "judge_repair": "exam_reference",
-    "judge_confidence": 1.0
+    "judge_confidence": 1.0,
+    "judge_evidence": "The question stem contains the tag '(NEET 2019)'."
    }
   }
  },
@@ -2070,7 +2112,8 @@
     "reply_if_review": "The velocity of a particle in SHM starting from equilibrium is v = Aω cos(ωt). With ω = π/8 and t = 2 s, we get π = A(π/8)cos(π/4), which simplifies to A = 8√2 m.",
     "judge_verdict": "no_error",
     "judge_repair": null,
-    "judge_confidence": 1.0
+    "judge_confidence": 1.0,
+    "judge_evidence": "With T = 16s, ω = π/8. At t = 2s, v = A(π/8)cos(π/4) = Aπ/(8√2). Setting v = π gives A = 8√2 m."
    }
   }
  },
@@ -2149,7 +2192,8 @@
     "reply_if_review": "The force calculation F' = 1.1 * 0.9 * 100 = 99 N is correct. This appears to be a display issue on your device; please try viewing in landscape mode or adjusting your zoom.",
     "judge_verdict": "display_issue",
     "judge_repair": null,
-    "judge_confidence": 1.0
+    "judge_confidence": 1.0,
+    "judge_evidence": "The stored content is correct: F' = 100 * 1.1 * 0.9 = 99 N. The student reports a layout issue."
    }
   }
  },
@@ -2223,15 +2267,17 @@
    "R021": {
     "flags": [],
     "overrides": [
-     "confidence 0.95->0.7 (blind solvers disagree: A=B, B=C)"
+     "repair type_mismatch->answer_key (precheck: stored key malformed; taxonomy answer_key covers malformed keys; no evidence of a wrong question type)",
+     "confidence 0.95->0.7 (blind solvers disagree: A=B, B=C)",
+     "student_reply: removed action claim(s) while faculty approval is pending: ['A teacher is updating the question type and fixing the answer key.']"
     ],
     "route_reasons": [
-     "guard: no edit proposed",
-     "confidence 0.70 < 0.85"
+     "confidence 0.70 < 0.85",
+     "blind solvers do not agree with each other",
+     "restricted evaluator did not reproduce the solvers' value"
     ],
     "guard_log": [
-     "guard rejected v1: new answer invalid: mcq answer must be a JSON list like [\"A\", \"C\"]",
-     "edit-repair retry skipped (offline cache replay; no cached edit-repair response) -> no edit, faculty decides"
+     "deterministic malformed-key normalisation passed the guard"
     ],
     "needs_attention": false,
     "attention_reason": null,
@@ -2240,7 +2286,8 @@
     "reply_if_review": "You are correct that only B is the right answer. A teacher is updating the question type and fixing the answer key.",
     "judge_verdict": "defect",
     "judge_repair": "type_mismatch",
-    "judge_confidence": 0.95
+    "judge_confidence": 0.95,
+    "judge_evidence": "The reduction by factor 8 in 3 min implies T_half = 1 min, so mean life = 1/ln2 = 1.44 min. The key [\"\", \"B\"] is malformed and the type should be scq."
    }
   }
  },
@@ -2331,7 +2378,8 @@
     "reply_if_review": "By Newton's Third Law, the forces between the two charges are equal in magnitude, so the ratio is 1:1. A teacher is adding this missing value to option C.",
     "judge_verdict": "defect",
     "judge_repair": "option_repair",
-    "judge_confidence": 1.0
+    "judge_confidence": 1.0,
+    "judge_evidence": "Newton's Third Law implies a 1:1 force ratio. Option C is blank in the HTML and is the keyed answer."
    }
   }
  },
@@ -2408,7 +2456,8 @@
     "reply_if_review": "The question and answer are correct as per standard biology textbooks. Julius von Sachs is indeed the scientist who proved glucose is produced during photosynthesis.",
     "judge_verdict": "not_actionable",
     "judge_repair": null,
-    "judge_confidence": 1.0
+    "judge_confidence": 1.0,
+    "judge_evidence": "The student comment 'asdfgh' is gibberish and the question content is factually accurate."
    }
   }
  },
@@ -2482,7 +2531,8 @@
     "reply_if_review": "While the surface area increases by 16 times, the total charge increases by 64 times. Since surface density is charge divided by area, the ratio is 64/16, which is 4:1.",
     "judge_verdict": "no_error",
     "judge_repair": null,
-    "judge_confidence": 1.0
+    "judge_confidence": 1.0,
+    "judge_evidence": "The charge increases by 64x while the surface area increases by only 16x (since R=4r), resulting in a 4:1 ratio for surface density."
    }
   }
  },
@@ -2563,7 +2613,8 @@
     "reply_if_review": "The value 1.9 x 10⁻⁵/°C is the linear expansion coefficient (α). The question asks for the cubical expansion coefficient (γ), which is 3α = 5.7 x 10⁻⁵/°C.",
     "judge_verdict": "no_error",
     "judge_repair": null,
-    "judge_confidence": 1.0
+    "judge_confidence": 1.0,
+    "judge_evidence": "The question specifically asks for the coefficient of cubical expansion (gamma), which is three times the linear expansion coefficient (alpha)."
    }
   }
  },
@@ -2645,7 +2696,8 @@
     "reply_if_review": "You are correct. The edge length of the cube is required to calculate the volume contraction. A teacher is adding the missing dimension (10 cm) to the question.",
     "judge_verdict": "defect",
     "judge_repair": "stem_data",
-    "judge_confidence": 1.0
+    "judge_confidence": 1.0,
+    "judge_evidence": "The edge length of 10 cm is used in the solution but is missing from the question stem."
    }
   }
  },
@@ -2717,7 +2769,8 @@
     "reply_if_review": "Relaxin and inhibin are not antagonistic. Relaxin is involved in softening pelvic ligaments during childbirth, while inhibin specifically inhibits the secretion of FSH.",
     "judge_verdict": "no_error",
     "judge_repair": null,
-    "judge_confidence": 1.0
+    "judge_confidence": 1.0,
+    "judge_evidence": "Relaxin and inhibin are not antagonistic; relaxin affects pelvic ligaments while inhibin inhibits FSH secretion."
    }
   }
  },
@@ -2784,7 +2837,9 @@
   "reports": {
    "R025": {
     "flags": [],
-    "overrides": [],
+    "overrides": [
+     "student_reply: removed action claim(s) while faculty approval is pending: ['A teacher is adding the diagram to clarify the bubble sizes.']"
+    ],
     "route_reasons": [
      "diagram is auto:false in taxonomy — faculty must author/approve"
     ],
@@ -2796,7 +2851,8 @@
     "reply_if_review": "You are correct that the figure is missing. A teacher is adding the diagram to clarify the bubble sizes.",
     "judge_verdict": "defect",
     "judge_repair": "diagram",
-    "judge_confidence": 0.9
+    "judge_confidence": 0.9,
+    "judge_evidence": "The question refers to a figure ('as shown in figure') which is missing from the record."
    }
   }
  },
@@ -2877,7 +2933,8 @@
     "reply_if_review": "The question and solution are correct. If the page is loading slowly, please check your internet connection or try restarting the app.",
     "judge_verdict": "display_issue",
     "judge_repair": null,
-    "judge_confidence": 1.0
+    "judge_confidence": 1.0,
+    "judge_evidence": "The question and solution are correct (3.1eV - 2.0eV = 1.1eV). Loading issues are related to the app or network."
    }
   }
  },
@@ -2958,7 +3015,8 @@
     "reply_if_review": "You are correct. A teacher is updating the answer key format to ensure that selecting A, B, and D is marked as correct.",
     "judge_verdict": "defect",
     "judge_repair": "answer_key",
-    "judge_confidence": 1.0
+    "judge_confidence": 1.0,
+    "judge_evidence": "The stored answer key '[\"A, B, D\"]' is malformed; it should be a list of separate strings '[\"A\", \"B\", \"D\"]' for an MCQ."
    }
   }
  },
@@ -2992,22 +3050,22 @@
     "cached": true,
     "batched": true,
     "numeric_check": {
-     "status": "match",
+     "status": "mismatch",
      "value": 3112.99254,
      "claimed": 3114.0
     }
    }
   },
   "agreement": {
-   "agree": true,
-   "answer": "3113",
+   "agree": false,
+   "answer": null,
    "answers": {
     "A": "3113",
     "B": "3114"
    },
    "stored_key": "3113",
-   "matches_key": true,
-   "numeric_ok": true
+   "matches_key": false,
+   "numeric_ok": false
   },
   "judge": {
    "question_analysis": "The side length 7.203 m has 4 significant digits. The total surface area A = 6 × (7.203)² = 311.299254 m². According to the rules of significant digits for multiplication, the result should be rounded to 4 significant digits, which is 311.3 m². Therefore, 10A = 3113. The stored answer and solution are correct.",
@@ -3021,19 +3079,22 @@
   "reports": {
    "R033": {
     "flags": [],
-    "overrides": [],
+    "overrides": [
+     "confidence 0.95->0.7 (blind solvers disagree: A=3113, B=3114)"
+    ],
     "route_reasons": [
      "verdict no_error is not a defect"
     ],
     "guard_log": [],
-    "needs_attention": false,
-    "attention_reason": null,
+    "needs_attention": true,
+    "attention_reason": "blind solvers disagree (A=3113, B=3114)",
     "comment": "answer should be 3112.99 not 3113",
     "reply_if_fixed": "The side length 7.203 m has 4 significant digits. Therefore, the surface area A = 6 × (7.203)² = 311.299... must be rounded to 4 significant digits, which is 311.3. Thus, 10A = 3113.",
     "reply_if_review": "The side length 7.203 m has 4 significant digits. Therefore, the surface area A = 6 × (7.203)² = 311.299... must be rounded to 4 significant digits, which is 311.3. Thus, 10A = 3113.",
     "judge_verdict": "no_error",
     "judge_repair": null,
-    "judge_confidence": 0.95
+    "judge_confidence": 0.95,
+    "judge_evidence": "The side length 7.203 m has 4 significant digits, so the area A must be rounded to 4 significant digits (311.3). Thus 10A = 3113."
    }
   }
  },
@@ -3109,7 +3170,8 @@
     "reply_if_review": "The relative angular acceleration is π/4 rad/s². The dots align when the relative angular displacement reaches 2π. Solving (1/2)(π/4)t² = 2π gives t = 4 seconds.",
     "judge_verdict": "no_error",
     "judge_repair": null,
-    "judge_confidence": 1.0
+    "judge_confidence": 1.0,
+    "judge_evidence": "Relative angular acceleration is π/4 rad/s². Solving 0.5 * (π/4) * t² = 2π gives t = 4 s."
    }
   }
  },
@@ -3189,7 +3251,8 @@
     "reply_if_review": "You are right that the unit was missing. A teacher is reviewing the question to add the required unit specification.",
     "judge_verdict": "defect",
     "judge_repair": "answer_form",
-    "judge_confidence": 0.9
+    "judge_confidence": 0.9,
+    "judge_evidence": "The question asks for the frictional force but does not specify the unit (N) required for the integer answer."
    }
   }
  }

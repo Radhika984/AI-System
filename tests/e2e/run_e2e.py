@@ -130,6 +130,10 @@ def browser_checks(ui: str, api: str, passcode: str) -> None:
         pg.wait_for_timeout(400)
         confirm = pg.locator("[role=group][aria-label='Confirm decision']")
         check("keyboard approve asks for confirmation first", len(api_json(api, "/api/audit")) == n0 and confirm.count() == 1)
+        ctext, atext = confirm.inner_text(), pg.locator("article").inner_text()
+        check("no-change case: 'Confirm decision' wording, reply described as a draft, nothing claims it is sent",
+              "Confirm decision?" in ctext and "Yes, confirm decision" in ctext and "remains a draft" in atext
+              and not any(w in atext.lower() for w in ("send reply", "sends the reply", "send the reply", "reply is sent")), ctext[:120])
         pg.locator("input[aria-label='Your name for the audit log']").press("Enter")  # typing in a field: no confirm
         pg.wait_for_timeout(600)
         check("Enter inside a text field does not confirm", len(api_json(api, "/api/audit")) == n0 and confirm.count() == 1)

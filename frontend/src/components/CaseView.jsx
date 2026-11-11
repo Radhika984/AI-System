@@ -107,7 +107,7 @@ function recommendation(c) {
   if (c.suggestion_withheld) return 'The AI proposed a correction, but it is withheld. Decide independently.'
   if (d?.field === 'answer') return `Change the answer key from ${strip(d.before)} to ${strip(d.after)}.`
   if (d) return `Correct the ${d.field}: “${strip(d.find).slice(0, 48) || '(blank)'}” → “${strip(d.replace).slice(0, 56)}”.`
-  if (c.route === 'no_change') return 'No change to the question. Confirm and send the reply to the student.'
+  if (c.route === 'no_change') return 'No change to the question. Confirm the decision; the student reply remains a draft for faculty to copy.'
   if (isRestricted(c)) return 'The AI may not write this correction. A teacher must author it (Edit) or reject it.'
   return 'Review the evidence and decide.'
 }
@@ -544,12 +544,12 @@ export default function CaseView({ c, rank, readOnly, canAct, onAction, busy, er
     if (ok !== false) setConfirming(null)
   }
   const approveLabel =
-    c.route === 'auto_apply' ? 'Keep correction' : c.diff ? 'Approve correction' : c.verdict === 'defect' ? 'Confirm problem' : 'Confirm & send reply'
+    c.route === 'auto_apply' ? 'Keep correction' : c.diff ? 'Approve correction' : c.verdict === 'defect' ? 'Confirm problem' : 'Confirm decision'
   const approveHint = c.suggestion_withheld
     ? 'Confirm problem records the defect. The withheld suggestion is not applied.'
     : c.route === 'auto_apply' ? 'The correction is already live. Keep it, or reject to undo it.'
-      : c.diff ? 'Approve applies the proposed change and sends the reply.'
-        : c.verdict === 'defect' ? 'Records the problem for a teacher-authored fix.' : 'Confirms the verdict and sends the reply.'
+      : c.diff ? 'Approve applies the proposed change. The student reply remains a draft for faculty to copy.'
+        : c.verdict === 'defect' ? 'Records the problem for a teacher-authored fix.' : 'Confirms the verdict. The student reply remains a draft for faculty to copy.'
   const n = c.reportIds.length
 
   return (

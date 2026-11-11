@@ -62,7 +62,7 @@ const REASON_RULES = [
   [/^guard: no edit proposed$/, () => 'The AI did not propose an exact text change, so there is nothing to apply automatically.'],
   [/^restricted evaluator did not reproduce/, () => "The code-based calculation re-check could not reproduce the solvers' numeric answer."],
   [/^solvers do not confirm the keyed answer/, () => 'The independent solvers did not confirm the answer key that the corrected solution must reach.'],
-  [/^verdict (\w+) is not a defect$/, (v) => `No fault was found in the question (${(VERDICT_HEADLINE[v] || v.replace(/_/g, ' ')).toLowerCase()}), so nothing in it changes; only the reply is sent.`],
+  [/^verdict (\w+) is not a defect$/, (v) => `No fault was found in the question (${(VERDICT_HEADLINE[v] || v.replace(/_/g, ' ')).toLowerCase()}), so nothing in it changes; only a reply is drafted.`],
 ]
 
 export function friendlyReason(raw) {

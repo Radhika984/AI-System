@@ -1,0 +1,18 @@
+{
+ "text": "{\n  \"solutions\": [\n    {\n      \"id\": \"Q1\",\n      \"final_answer\": \"A\",\n      \"numeric_value\": 5.7e-05,\n      \"expression\": \"3 * 0.19 / 100\",\n      \"method\": \"Calculated linear expansion coefficient alpha = deltaL/(L*deltaT) = 0.19/100 = 0.0019/100 = 1.9e-5. Cubical expansion gamma = 3*alpha = 5.7e-5.\",\n      \"confidence\": 1.0,\n      \"problems_noticed\": []\n    },\n    {\n      \"id\": \"Q2\",\n      \"final_answer\": \"0\",\n      \"numeric_value\": 0,\n      \"expression\": null,\n      \"method\": \"The question asks for volume contraction in mm^3 but does not provide the initial volume of the cube. Without the initial volume, the numerical value cannot be determined.\",\n      \"confidence\": 0.0,\n      \"problems_noticed\": [\n        \"Missing initial volume of the cube\"\n      ]\n    },\n    {\n      \"id\": \"Q3\",\n      \"final_answer\": \"D\",\n      \"confidence\": 1.0,\n      \"problems_noticed\": []\n    },\n    {\n      \"id\": \"Q4\",\n      \"final_answer\": \"D\",\n      \"confidence\": 1.0,\n      \"problems_noticed\": []\n    },\n    {\n      \"id\": \"Q5\",\n      \"final_answer\": \"D\",\n      \"numeric_value\": 1.1,\n      \"expression\": \"12400/4000 - 2.0\",\n      \"method\": \"Used Einstein's photoelectric equation: Kmax = hc/lambda - phi. Kmax = 3.1 eV - 2.0 eV = 1.1 eV, so stopping potential is 1.1 V.\",\n      \"confidence\": 1.0,\n      \"problems_noticed\": []\n    },\n    {\n      \"id\": \"Q6\",\n      \"final_answer\": \"A,B,D\",\n      \"confidence\": 1.0,\n      \"problems_noticed\": []\n    },\n    {\n      \"id\": \"Q7\",\n      \"final_answer\": \"3114\",\n      \"numeric_value\": 3114,\n      \"expression\": \"10 * 6 * 7.203**2\",\n      \"method\": \"Surface area A = 6 * side^2. 6 * (7.203)^2 = 311.418554. Multiplying by 10 gives 3114.18554, rounded to significant digits based on input precision.\",\n      \"confidence\": 0.9,\n      \"problems_noticed\": []\n    },\n    {\n      \"id\": \"Q8\",\n      \"final_answer\": \"4\",\n      \"numeric_value\": 4,\n      \"expression\": \"sqrt(4 * pi / (pi/2 - pi/4))\",\n      \"method\": \"Set angular displacement difference equal to 2*pi: 0.5 * (alpha1 - alpha2) * t^2 = 2*pi. Solving for t gives 4 seconds.\",\n      \"confidence\": 1.0,\n      \"problems_noticed\": []\n    },\n    {\n      \"id\": \"Q9\",\n      \"final_answer\": \"20\",\n      \"numeric_value\": 20,\n      \"expression\": \"2 * 10\",\n      \"method\": \"The limiting friction is mu*N = 0.3 * 100 = 30 N. Since the weight (mg = 20 N) is less than the limiting friction, the static friction equals the weight.\",\n      \"confidence\": 1.0,\n      \"problems_noticed\": []\n    }\n  ]\n}",
+ "model": "gemini-3.1-flash-lite",
+ "prompt_version": "solverB-v2+batch-v1",
+ "usage": {
+  "promptTokenCount": 1556,
+  "candidatesTokenCount": 928,
+  "totalTokenCount": 2484,
+  "promptTokensDetails": [
+   {
+    "modality": "TEXT",
+    "tokenCount": 1556
+   }
+  ],
+  "serviceTier": "standard"
+ },
+ "at": "2026-11-11T04:40:18Z"
+}

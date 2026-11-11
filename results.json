@@ -1,0 +1,550 @@
+[
+  {
+    "reportId": "R001",
+    "questionId": "60f744b3f1b9bc7cc7b4a949",
+    "verdict": "defect",
+    "repair": "answer_key",
+    "edit": {
+      "field": "answer",
+      "find": "C",
+      "replace": "A"
+    },
+    "route": "auto_apply",
+    "confidence": 1.0,
+    "evidence": "Calculation V = √(40² + 30²) = 50 V matches option A, but key is C.",
+    "student_reply": "You are correct. The calculation V = √(40² + (60-30)²) results in 50 V, which is option A. We have updated the answer key."
+  },
+  {
+    "reportId": "R002",
+    "questionId": "60f744b3f1b9bc7cc7b4a949",
+    "verdict": "defect",
+    "repair": "answer_key",
+    "edit": {
+      "field": "answer",
+      "find": "C",
+      "replace": "A"
+    },
+    "route": "auto_apply",
+    "confidence": 1.0,
+    "evidence": "Calculation V = √(40² + 30²) = 50 V matches option A, but key is C.",
+    "student_reply": "You are correct. The calculation V = √(40² + (60-30)²) results in 50 V, which is option A. We have updated the answer key."
+  },
+  {
+    "reportId": "R003",
+    "questionId": "60f744b3f1b9bc7cc7b4a949",
+    "verdict": "defect",
+    "repair": "answer_key",
+    "edit": {
+      "field": "answer",
+      "find": "C",
+      "replace": "A"
+    },
+    "route": "auto_apply",
+    "confidence": 1.0,
+    "evidence": "Calculation V = √(40² + 30²) = 50 V matches option A, but key is C.",
+    "student_reply": "You are correct. The calculation V = √(40² + (60-30)²) results in 50 V, which is option A. We have updated the answer key."
+  },
+  {
+    "reportId": "R004",
+    "questionId": "68e870ef42c06737d6e565c4",
+    "verdict": "defect",
+    "repair": "answer_key",
+    "edit": {
+      "field": "answer",
+      "find": "A",
+      "replace": "D"
+    },
+    "route": "auto_apply",
+    "confidence": 1.0,
+    "evidence": "Calculation P = (1/3)(0.09)(400^2) = 4800 N/m^2 matches option D, but the key is A.",
+    "student_reply": "The pressure is calculated as P = (1/3)ρv² = (1/3)(0.09)(400²) = 4800 N/m². The answer key has been corrected to D."
+  },
+  {
+    "reportId": "R005",
+    "questionId": "68dea616d0cda73d07e93ae6",
+    "verdict": "defect",
+    "repair": "answer_key",
+    "edit": {
+      "field": "answer",
+      "find": "2",
+      "replace": "1"
+    },
+    "route": "auto_apply",
+    "confidence": 1.0,
+    "evidence": "Total flux = (q/2)/(2ε₀) + (2q)/(8ε₀) = q/(2ε₀), which implies n=1.",
+    "student_reply": "Correct! The total flux is indeed q/(2ε₀), so n = 1. We have updated the answer key."
+  },
+  {
+    "reportId": "R006",
+    "questionId": "696a866665252c04fc1f81c2",
+    "verdict": "defect",
+    "repair": "stem_data",
+    "edit": {
+      "field": "question",
+      "find": "solid copper cube,",
+      "replace": "solid copper cube of edge length 10 cm,"
+    },
+    "route": "auto_apply",
+    "confidence": 1.0,
+    "evidence": "The edge length of 10 cm is used in the solution but is missing from the question stem.",
+    "student_reply": "You are correct. The edge length of the cube (10 cm) was missing from the question. It has been added now."
+  },
+  {
+    "reportId": "R007",
+    "questionId": "60f742f6660d187cc13a8078",
+    "verdict": "defect",
+    "repair": "stem_data",
+    "edit": {
+      "field": "question",
+      "find": "and an inductance are",
+      "replace": "and an inductance of 95.5 mH are"
+    },
+    "route": "auto_apply",
+    "confidence": 1.0,
+    "evidence": "Inductance value is missing in the stem but used as 95.5 mH in the solution.",
+    "student_reply": "You are correct; the inductance value was missing in the question. It has been updated to 95.5 mH to result in an impedance of 50 ohms."
+  },
+  {
+    "reportId": "R008",
+    "questionId": "60f742f6660d187cc13a8078",
+    "verdict": "defect",
+    "repair": "stem_data",
+    "edit": {
+      "field": "question",
+      "find": "and an inductance are",
+      "replace": "and an inductance of 95.5 mH are"
+    },
+    "route": "auto_apply",
+    "confidence": 1.0,
+    "evidence": "Inductance value is missing in the stem but used as 95.5 mH in the solution.",
+    "student_reply": "You are correct; the inductance value was missing in the question. It has been updated to 95.5 mH to result in an impedance of 50 ohms."
+  },
+  {
+    "reportId": "R009",
+    "questionId": "622f08d7b70e4b50e4500a1b",
+    "verdict": "defect",
+    "repair": "option_repair",
+    "edit": null,
+    "route": "faculty_review",
+    "confidence": 1.0,
+    "evidence": "Option D is missing from the question HTML.",
+    "student_reply": "Thank you for your feedback. A teacher is restoring the missing option D to the question."
+  },
+  {
+    "reportId": "R010",
+    "questionId": "622f08d7b70e4b50e4500a1b",
+    "verdict": "defect",
+    "repair": "option_repair",
+    "edit": null,
+    "route": "faculty_review",
+    "confidence": 1.0,
+    "evidence": "Option D is missing from the question HTML.",
+    "student_reply": "Thank you for your feedback. A teacher is restoring the missing option D to the question."
+  },
+  {
+    "reportId": "R011",
+    "questionId": "68e872546e45ba37dcc16bc0",
+    "verdict": "defect",
+    "repair": "option_repair",
+    "edit": {
+      "field": "question",
+      "find": "<br />(C) <br />",
+      "replace": "<br />(C) <math display=\"inline\" xmlns=\"http://www.w3.org/1998/Math/MathML\"><mrow><mn> 1 </mn><mi>:</mi><mn> 1 </mn></mrow></math><br />"
+    },
+    "route": "auto_apply",
+    "confidence": 1.0,
+    "evidence": "Newton's Third Law implies a 1:1 force ratio. Option C is blank in the HTML and is the keyed answer.",
+    "student_reply": "By Newton's Third Law, the forces between the two charges are equal in magnitude, so the ratio is 1:1. We have added this missing value to option C."
+  },
+  {
+    "reportId": "R012",
+    "questionId": "61dffbec08489156b684bd22",
+    "verdict": "defect",
+    "repair": "spelling",
+    "edit": {
+      "field": "question",
+      "find": "Epithellial tisue",
+      "replace": "Epithelial tissue"
+    },
+    "route": "auto_apply",
+    "confidence": 1.0,
+    "evidence": "Option A is spelled 'Epithellial tisue' instead of 'Epithelial tissue'.",
+    "student_reply": "Thank you for pointing this out. We have corrected the spelling of 'Epithelial tissue' in the options."
+  },
+  {
+    "reportId": "R013",
+    "questionId": "617fa18efd53ff1629ed890f",
+    "verdict": "defect",
+    "repair": "exam_reference",
+    "edit": {
+      "field": "question",
+      "find": "(NEET 2019) ",
+      "replace": ""
+    },
+    "route": "auto_apply",
+    "confidence": 1.0,
+    "evidence": "The question stem contains the tag '(NEET 2019)'.",
+    "student_reply": "We have removed the exam reference from the question text to keep it clean. Thank you for your feedback."
+  },
+  {
+    "reportId": "R014",
+    "questionId": "63765a28f1d8416ae0408d89",
+    "verdict": "defect",
+    "repair": "markup_leak",
+    "edit": {
+      "field": "question",
+      "find": "\\frac{7}{8}",
+      "replace": "7/8"
+    },
+    "route": "auto_apply",
+    "confidence": 1.0,
+    "evidence": "Raw LaTeX '\\frac{7}{8}' is present in the question stem.",
+    "student_reply": "Thank you for pointing this out. We have fixed the display error so the fraction appears correctly as 7/8."
+  },
+  {
+    "reportId": "R015",
+    "questionId": "6956d79788d7701e5617bc29",
+    "verdict": "defect",
+    "repair": "identical_options",
+    "edit": null,
+    "route": "faculty_review",
+    "confidence": 1.0,
+    "evidence": "Options B and C are both '0 W'.",
+    "student_reply": "You are right that options B and C are identical. A teacher is reviewing the question to ensure all options are unique."
+  },
+  {
+    "reportId": "R016",
+    "questionId": "6263d75bdd44e265ef926d97",
+    "verdict": "defect",
+    "repair": "solution_fix",
+    "edit": {
+      "field": "solution",
+      "find": "a = 40 cm",
+      "replace": "a = 20 cm"
+    },
+    "route": "auto_apply",
+    "confidence": 1.0,
+    "evidence": "The calculation 800 = 2 * a^2 correctly implies a = 20, but the solution text concludes with a = 40 cm.",
+    "student_reply": "You are correct. The calculation 800 = 2 * a² correctly gives a = 20 cm, but the final line of the solution incorrectly stated 40 cm. We have updated the solution."
+  },
+  {
+    "reportId": "R017",
+    "questionId": "6208e80a9cb2ab67dac61bd0",
+    "verdict": "already_fixed",
+    "repair": null,
+    "edit": null,
+    "route": "no_change",
+    "confidence": 1.0,
+    "evidence": "errorHistory shows 'mere' -> 'more' was fixed on 2026-11-07.",
+    "student_reply": "Thank you for your report. The spelling error 'mere' has already been corrected to 'more' in the current version of the question."
+  },
+  {
+    "reportId": "R018",
+    "questionId": "612151a6a34397610a9a2e58",
+    "verdict": "defect",
+    "repair": "solution_fix",
+    "edit": null,
+    "route": "faculty_review",
+    "confidence": 1.0,
+    "evidence": "The solution text mentions a wavelength of 5.47 Å, which does not match the 0.3 nm (3 Å) given in the question.",
+    "student_reply": "You are right; the solution text belongs to a different question. We are updating it to correctly reflect the calculation for 0.3 nm."
+  },
+  {
+    "reportId": "R019",
+    "questionId": "612151a6a34397610a9a2e58",
+    "verdict": "defect",
+    "repair": "solution_fix",
+    "edit": null,
+    "route": "faculty_review",
+    "confidence": 1.0,
+    "evidence": "The solution incorrectly uses 5.47 Å instead of the 0.3 nm provided in the stem.",
+    "student_reply": "We appreciate your feedback. The solution is being corrected to use the 0.3 nm wavelength given in the question instead of 5.47 Å."
+  },
+  {
+    "reportId": "R020",
+    "questionId": "68c8153cfb6b2f16e2d3ceaf",
+    "verdict": "defect",
+    "repair": "answer_key",
+    "edit": {
+      "field": "answer",
+      "find": "[\"A, B, D\"]",
+      "replace": "[\"A\", \"B\", \"D\"]"
+    },
+    "route": "auto_apply",
+    "confidence": 1.0,
+    "evidence": "The stored answer key '[\"A, B, D\"]' is malformed; it should be a list of separate strings '[\"A\", \"B\", \"D\"]' for an MCQ.",
+    "student_reply": "You are correct. The answer key was improperly formatted, and we have updated it to correctly recognize your selection of A, B, and D."
+  },
+  {
+    "reportId": "R021",
+    "questionId": "68f21caf941cda588bc04365",
+    "verdict": "defect",
+    "repair": "type_mismatch",
+    "edit": null,
+    "route": "faculty_review",
+    "confidence": 0.95,
+    "evidence": "The reduction by factor 8 in 3 min implies T_half = 1 min, so mean life = 1/ln2 = 1.44 min. The key [\"\", \"B\"] is malformed and the type should be scq.",
+    "student_reply": "You are correct that only B is the right answer. A teacher is updating the question type and fixing the answer key."
+  },
+  {
+    "reportId": "R022",
+    "questionId": "61ee6c9d90a1a968a168686b",
+    "verdict": "defect",
+    "repair": "spelling",
+    "edit": {
+      "field": "question",
+      "find": "Choroid plexux",
+      "replace": "Choroid plexus"
+    },
+    "route": "auto_apply",
+    "confidence": 1.0,
+    "evidence": "Option D contains the typo 'plexux' instead of 'plexus'.",
+    "student_reply": "Thank you for pointing this out. We have corrected the spelling of 'plexus' in the options."
+  },
+  {
+    "reportId": "R023",
+    "questionId": "68ecbacb2ec87a18deba1ad7",
+    "verdict": "defect",
+    "repair": "wrong_chapter",
+    "edit": null,
+    "route": "faculty_review",
+    "confidence": 1.0,
+    "evidence": "The question is about action potentials (Neural Control) but is filed under 'The Living World'.",
+    "student_reply": "You are right, this question belongs in the Neural Control and Coordination chapter. A teacher is moving it to the correct section."
+  },
+  {
+    "reportId": "R024",
+    "questionId": "5fc60508028950133eac8963",
+    "verdict": "defect",
+    "repair": "answer_form",
+    "edit": {
+      "field": "question",
+      "find": "equal to",
+      "replace": "equal to (in N)"
+    },
+    "route": "auto_apply",
+    "confidence": 0.9,
+    "evidence": "The question asks for the frictional force but does not specify the unit (N) required for the integer answer.",
+    "student_reply": "You are right that the unit was missing. We have updated the question to specify that the answer should be in Newtons (N)."
+  },
+  {
+    "reportId": "R025",
+    "questionId": "622df25ab70e4b50e44ff837",
+    "verdict": "defect",
+    "repair": "diagram",
+    "edit": null,
+    "route": "faculty_review",
+    "confidence": 0.9,
+    "evidence": "The question refers to a figure ('as shown in figure') which is missing from the record.",
+    "student_reply": "You are correct that the figure is missing. A teacher is adding the diagram to clarify the bubble sizes."
+  },
+  {
+    "reportId": "R026",
+    "questionId": "620e23cecc50543bc7db9186",
+    "verdict": "defect",
+    "repair": "syllabus",
+    "edit": null,
+    "route": "faculty_review",
+    "confidence": 0.8,
+    "evidence": "Outgroup analysis is a standard phylogenetic method included in the study of evolution.",
+    "student_reply": "Thanks for flagging this! A teacher will confirm whether it's in your syllabus; until then the question stays live, so it's fine to skip it if it's unfamiliar."
+  },
+  {
+    "reportId": "R027",
+    "questionId": "6062ec84518e9535e120c422",
+    "verdict": "no_error",
+    "repair": null,
+    "edit": null,
+    "route": "no_change",
+    "confidence": 1.0,
+    "evidence": "The question specifically asks for the coefficient of cubical expansion (gamma), which is three times the linear expansion coefficient (alpha).",
+    "student_reply": "The value 1.9 x 10⁻⁵/°C is the linear expansion coefficient (α). The question asks for the cubical expansion coefficient (γ), which is 3α = 5.7 x 10⁻⁵/°C."
+  },
+  {
+    "reportId": "R028",
+    "questionId": "6956d7bb23cb221e570d6013",
+    "verdict": "no_error",
+    "repair": null,
+    "edit": null,
+    "route": "no_change",
+    "confidence": 1.0,
+    "evidence": "Equating R = (u^2 sin 2θ)/g and H = (u^2 sin^2 θ)/(2g) yields 2 sin θ cos θ = sin^2 θ / 2, which simplifies to tan θ = 4.",
+    "student_reply": "Equating the formulas for range and height gives tan θ = 4. You might have used the condition for the range being twice the height by mistake."
+  },
+  {
+    "reportId": "R029",
+    "questionId": "68e8734442c06737d6e56da4",
+    "verdict": "no_error",
+    "repair": null,
+    "edit": null,
+    "route": "no_change",
+    "confidence": 1.0,
+    "evidence": "Solving the system F - 100μ = 10 and 2F - 100μ = 100 yields μ = 0.8.",
+    "student_reply": "The calculation shows that μ = 0.8. From the first condition, F = 10 + 100μ. Substituting this into the second condition (2F - 100μ = 100) gives 2(10 + 100μ) - 100μ = 100, which simplifies to 100μ = 80."
+  },
+  {
+    "reportId": "R030",
+    "questionId": "6956d7e988d7701e5617bd3e",
+    "verdict": "no_error",
+    "repair": null,
+    "edit": null,
+    "route": "no_change",
+    "confidence": 1.0,
+    "evidence": "With T = 16s, ω = π/8. At t = 2s, v = A(π/8)cos(π/4) = Aπ/(8√2). Setting v = π gives A = 8√2 m.",
+    "student_reply": "The velocity of a particle in SHM starting from equilibrium is v = Aω cos(ωt). With ω = π/8 and t = 2 s, we get π = A(π/8)cos(π/4), which simplifies to A = 8√2 m."
+  },
+  {
+    "reportId": "R031",
+    "questionId": "68dea619d0cda73d07e93aee",
+    "verdict": "no_error",
+    "repair": null,
+    "edit": null,
+    "route": "no_change",
+    "confidence": 1.0,
+    "evidence": "Relative angular acceleration is π/4 rad/s². Solving 0.5 * (π/4) * t² = 2π gives t = 4 s.",
+    "student_reply": "The relative angular acceleration is π/4 rad/s². The dots align when the relative angular displacement reaches 2π. Solving (1/2)(π/4)t² = 2π gives t = 4 seconds."
+  },
+  {
+    "reportId": "R032",
+    "questionId": "68dea7c2387eea3d0d95f9bb",
+    "verdict": "no_error",
+    "repair": null,
+    "edit": null,
+    "route": "no_change",
+    "confidence": 1.0,
+    "evidence": "Calculation: 0.08 m = 8 cm. The question specifically asks for the shift in cm.",
+    "student_reply": "The calculated shift is 0.08 meters. Since the question asks for the answer in centimeters, we convert it: 0.08 m = 8 cm."
+  },
+  {
+    "reportId": "R033",
+    "questionId": "68dea715387eea3d0d95f790",
+    "verdict": "no_error",
+    "repair": null,
+    "edit": null,
+    "route": "no_change",
+    "confidence": 0.95,
+    "evidence": "The side length 7.203 m has 4 significant digits, so the area A must be rounded to 4 significant digits (311.3). Thus 10A = 3113.",
+    "student_reply": "The side length 7.203 m has 4 significant digits. Therefore, the surface area A = 6 × (7.203)² = 311.299... must be rounded to 4 significant digits, which is 311.3."
+  },
+  {
+    "reportId": "R034",
+    "questionId": "695ee00b88d7701e561aabc5",
+    "verdict": "defect",
+    "repair": "unsound",
+    "edit": null,
+    "route": "faculty_review",
+    "confidence": 0.9,
+    "evidence": "Assertion is false (I = 2I0 for phase pi/2) and Reason is false (intensity is not always the sum).",
+    "student_reply": "For a phase difference of π/2, the resultant intensity is 2I₀, not I₀. A teacher is reviewing the question as both the assertion and reason appear to be incorrect."
+  },
+  {
+    "reportId": "R035",
+    "questionId": "66fe9dbe22132e5a70a3e579",
+    "verdict": "no_error",
+    "repair": null,
+    "edit": null,
+    "route": "no_change",
+    "confidence": 1.0,
+    "evidence": "Relaxin and inhibin are not antagonistic; relaxin affects pelvic ligaments while inhibin inhibits FSH secretion.",
+    "student_reply": "Relaxin and inhibin are not antagonistic. Relaxin is involved in softening pelvic ligaments during childbirth, while inhibin specifically inhibits the secretion of FSH."
+  },
+  {
+    "reportId": "R036",
+    "questionId": "60ca4feb6420652745f55522",
+    "verdict": "display_issue",
+    "repair": null,
+    "edit": null,
+    "route": "no_change",
+    "confidence": 1.0,
+    "evidence": "The stored content is correct: F' = 100 * 1.1 * 0.9 = 99 N. The student reports a layout issue.",
+    "student_reply": "The force calculation F' = 1.1 * 0.9 * 100 = 99 N is correct. This appears to be a display issue on your device; please try viewing in landscape mode or adjusting your zoom."
+  },
+  {
+    "reportId": "R037",
+    "questionId": "68c9ae5afb6b2f16e2d43b1c",
+    "verdict": "display_issue",
+    "repair": null,
+    "edit": null,
+    "route": "no_change",
+    "confidence": 1.0,
+    "evidence": "The question and solution are correct (3.1eV - 2.0eV = 1.1eV). Loading issues are related to the app or network.",
+    "student_reply": "The question and solution are correct. If the page is loading slowly, please check your internet connection or try restarting the app."
+  },
+  {
+    "reportId": "R038",
+    "questionId": "68f21df0941cda588bc0470b",
+    "verdict": "app_issue",
+    "repair": null,
+    "edit": null,
+    "route": "no_change",
+    "confidence": 1.0,
+    "evidence": "The student reports a selection error ('I clicked A but it saved B') while the content itself is correct.",
+    "student_reply": "The question and answer key are correct. If your selection was recorded incorrectly, it might be due to a temporary connection or interface issue."
+  },
+  {
+    "reportId": "R039",
+    "questionId": "68c801bc1b1dbc16dc93bf2b",
+    "verdict": "language_mode",
+    "repair": null,
+    "edit": null,
+    "route": "no_change",
+    "confidence": 1.0,
+    "evidence": "Student requested the question in Hindi.",
+    "student_reply": "Currently, our questions are provided in English. We are working on adding support for other languages in the future."
+  },
+  {
+    "reportId": "R040",
+    "questionId": "6264197209f4fd65f58f5707",
+    "verdict": "no_error",
+    "repair": null,
+    "edit": null,
+    "route": "no_change",
+    "confidence": 1.0,
+    "evidence": "Golden rice is specifically engineered to provide Vitamin A precursors, which prevents associated blindness.",
+    "student_reply": "The question is correct. Golden rice is genetically modified to produce beta-carotene, which the body converts to Vitamin A, helping prevent deficiency-related blindness."
+  },
+  {
+    "reportId": "R041",
+    "questionId": "6208e298fa399567e0878700",
+    "verdict": "not_actionable",
+    "repair": null,
+    "edit": null,
+    "route": "no_change",
+    "confidence": 1.0,
+    "evidence": "The student comment 'asdfgh' is gibberish and the question content is factually accurate.",
+    "student_reply": "The question and answer are correct as per standard biology textbooks. Julius von Sachs is indeed the scientist who proved glucose is produced during photosynthesis."
+  },
+  {
+    "reportId": "R042",
+    "questionId": "63c7cce12981ed154ee92c94",
+    "verdict": "defect",
+    "repair": "wrong_chapter",
+    "edit": null,
+    "route": "faculty_review",
+    "confidence": 1.0,
+    "evidence": "The question is about displacement current in a capacitor, which belongs to Electromagnetic Waves, not Geometrical Optics.",
+    "student_reply": "You are right that displacement current belongs to the Electromagnetic Waves chapter. Thank you for the feedback; a teacher is now updating the chapter classification."
+  },
+  {
+    "reportId": "R043",
+    "questionId": "636283dbe3770c24f866e6d6",
+    "verdict": "no_error",
+    "repair": null,
+    "edit": null,
+    "route": "no_change",
+    "confidence": 1.0,
+    "evidence": "The charge increases by 64x while the surface area increases by only 16x (since R=4r), resulting in a 4:1 ratio for surface density.",
+    "student_reply": "While the surface area increases by 16 times, the total charge increases by 64 times. Since surface density is charge divided by area, the ratio is 64/16, which is 4:1."
+  },
+  {
+    "reportId": "R044",
+    "questionId": "68dea577d0cda73d07e9391c",
+    "verdict": "no_error",
+    "repair": null,
+    "edit": null,
+    "route": "no_change",
+    "confidence": 1.0,
+    "evidence": "V_P = (16/2)*(3 - 0.25) = 22 V and V_S = 16/2 = 8 V. The difference is 22 - 8 = 14 V.",
+    "student_reply": "The potential at point P is 22 V and at point S is 8 V. The question asks for the potential difference between them, which is 22 - 8 = 14 V."
+  }
+]

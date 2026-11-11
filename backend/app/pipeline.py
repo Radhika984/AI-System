@@ -26,6 +26,7 @@ FALLBACK_REPLY = {
     "already_fixed": "Thanks for flagging this! A teacher already corrected it after your report, so reopen the question and you'll see the fixed version.",
     "not_actionable": "Thanks for reaching out! We checked this question and it looks correct; if something still seems off, tell us what you expected and we'll look again.",
     "defect": "You spotted a real problem - thank you! A teacher is verifying the fix now and the question will be updated shortly.",
+    "syllabus": "Thanks for flagging this! A teacher will confirm whether it's in your syllabus; until then the question stays live, so it's fine to skip it if it's unfamiliar.",
     "_": "Thanks for flagging this! We checked the question carefully and it is correct as stored.",
 }
 
@@ -80,6 +81,12 @@ def finalize(q, qcheck, rflags, solves, agree, jo, jmeta, client) -> tuple[list[
             overrides.append(f"verdict {verdict}->already_fixed (errorHistory proves the fix)")
             verdict, repair = "already_fixed", None
 
+        # Rule: a syllabus claim is confirmed by faculty, never ruled on by the AI
+        # (taxonomy: "Student says it is outside the syllabus. Faculty confirm; question stays live").
+        if "syllabus_claim" in codes and verdict != "defect":
+            overrides.append(f"verdict {verdict}->defect/syllabus (syllabus scope is a faculty decision)")
+            verdict, repair = "defect", "syllabus"
+
         # Rule: solvers agree with each other but contradict the stored key while the
         # judge calls it fine -> keep verdict, cap confidence, flag for attention.
         needs_attention = False
@@ -102,10 +109,10 @@ def finalize(q, qcheck, rflags, solves, agree, jo, jmeta, client) -> tuple[list[
             edit, guard_log = edit_cache[repair]
 
         rd = G.route(q=q, verdict=verdict, repair=repair, edit=edit, confidence=conf,
-                     injection_in_group=injection, solver_agreement=agree)
+                     injection_in_group=injection, solver_agreement=agree, solves=solves)
         reply = d.reply_if_fixed if rd.route == "auto_apply" else d.reply_if_review
         if verdict != d.verdict:  # a deterministic rule changed the outcome -> the model's reply no longer fits
-            reply = FALLBACK_REPLY.get(verdict, FALLBACK_REPLY["_"])
+            reply = FALLBACK_REPLY.get(repair if repair in FALLBACK_REPLY else verdict, FALLBACK_REPLY["_"])
             overrides.append("student_reply replaced by template (verdict overridden)")
         reply = _clip_sentences(reply)
         if len(reply) < 10 or count_sentences(reply) < 1:

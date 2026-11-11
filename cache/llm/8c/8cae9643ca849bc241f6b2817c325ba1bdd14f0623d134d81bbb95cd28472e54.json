@@ -1,0 +1,26 @@
+{
+ "text": "{\n  \"cases\": [\n    {\n      \"case\": \"C1\",\n      \"question_analysis\": \"The question and answer key are correct. Relaxin and Inhibin are not antagonistic as they have unrelated physiological roles (ligament softening vs. FSH inhibition). The solution contains a typo stating insulin and glucagon are synergistic, but the final answer D is correct.\",\n      \"correct_answer\": \"D\",\n      \"edit\": null,\n      \"decisions\": [\n        {\n          \"reportId\": \"R035\",\n          \"verdict\": \"no_error\",\n          \"repair\": null,\n          \"confidence\": 1.0,\n          \"evidence\": \"Relaxin and inhibin are not antagonistic; relaxin affects pelvic ligaments while inhibin inhibits FSH secretion.\",\n          \"reply_if_fixed\": \"Relaxin and inhibin are not antagonistic. Relaxin is involved in softening pelvic ligaments during childbirth, while inhibin specifically inhibits the secretion of FSH.\",\n          \"reply_if_review\": \"Relaxin and inhibin are not antagonistic. Relaxin is involved in softening pelvic ligaments during childbirth, while inhibin specifically inhibits the secretion of FSH.\"\n        }\n      ]\n    },\n    {\n      \"case\": \"C2\",\n      \"question_analysis\": \"The question is missing the figure it refers to. However, based on the physics of soap bubbles on a tube of radius r, a hemispherical bubble has the smallest possible radius of curvature (R=r) and thus the highest excess pressure. Air will flow from the hemispherical bubble (End 1) to the sub-hemispherical bubble (End 2).\",\n      \"correct_answer\": \"B\",\n      \"edit\": null,\n      \"decisions\": [\n        {\n          \"reportId\": \"R025\",\n          \"verdict\": \"defect\",\n          \"repair\": \"diagram\",\n          \"confidence\": 0.9,\n          \"evidence\": \"The question refers to a figure ('as shown in figure') which is missing from the record.\",\n          \"reply_if_fixed\": \"You are correct that the figure is missing. We are adding the diagram to clarify the bubble sizes, though the physics confirms air flows from the hemispherical bubble.\",\n          \"reply_if_review\": \"You are correct that the figure is missing. A teacher is adding the diagram to clarify the bubble sizes.\"\n        }\n      ]\n    },\n    {\n      \"case\": \"C3\",\n      \"question_analysis\": \"The question and solution are correct. Photon energy is 3.1 eV (12400/4000), work function is 2.0 eV, so max kinetic energy is 1.1 eV, giving a stopping potential of 1.1 V.\",\n      \"correct_answer\": \"D\",\n      \"edit\": null,\n      \"decisions\": [\n        {\n          \"reportId\": \"R037\",\n          \"verdict\": \"display_issue\",\n          \"repair\": null,\n          \"confidence\": 1.0,\n          \"evidence\": \"The question and solution are correct (3.1eV - 2.0eV = 1.1eV). Loading issues are related to the app or network.\",\n          \"reply_if_fixed\": \"The question and solution are correct. If the page is loading slowly, please check your internet connection or try restarting the app.\",\n          \"reply_if_review\": \"The question and solution are correct. If the page is loading slowly, please check your internet connection or try restarting the app.\"\n        }\n      ]\n    },\n    {\n      \"case\": \"C4\",\n      \"question_analysis\": \"Statements A, B, and D are correct. Statement C is incorrect because a particle moving parallel to a magnetic field experiences no force and moves in a straight line. The stored answer key is malformed as a single string within a list.\",\n      \"correct_answer\": \"[\\\"A\\\", \\\"B\\\", \\\"D\\\"]\",\n      \"edit\": {\n        \"field\": \"answer\",\n        \"find\": \"[\\\"A, B, D\\\"]\",\n        \"replace\": \"[\\\"A\\\", \\\"B\\\", \\\"D\\\"]\"\n      },\n      \"decisions\": [\n        {\n          \"reportId\": \"R020\",\n          \"verdict\": \"defect\",\n          \"repair\": \"answer_key\",\n          \"confidence\": 1.0,\n          \"evidence\": \"The stored answer key '[\\\"A, B, D\\\"]' is malformed; it should be a list of separate strings '[\\\"A\\\", \\\"B\\\", \\\"D\\\"]' for an MCQ.\",\n          \"reply_if_fixed\": \"You are correct. The answer key was improperly formatted, and we have updated it to correctly recognize your selection of A, B, and D.\",\n          \"reply_if_review\": \"You are correct. A teacher is updating the answer key format to ensure that selecting A, B, and D is marked as correct.\"\n        }\n      ]\n    }\n  ]\n}",
+ "model": "gemini-3-flash-preview",
+ "prompt_version": "judge-v1+batch-v1",
+ "usage": {
+  "promptTokenCount": 6815,
+  "candidatesTokenCount": 1121,
+  "totalTokenCount": 14998,
+  "cachedContentTokenCount": 2020,
+  "promptTokensDetails": [
+   {
+    "modality": "TEXT",
+    "tokenCount": 6815
+   }
+  ],
+  "cacheTokensDetails": [
+   {
+    "modality": "TEXT",
+    "tokenCount": 2020
+   }
+  ],
+  "thoughtsTokenCount": 7062,
+  "serviceTier": "standard"
+ },
+ "at": "2026-11-11T04:49:00Z"
+}

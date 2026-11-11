@@ -1,0 +1,19 @@
+{
+ "text": "{\"edit\": {\"field\": \"question\", \"find\": \"(C) <math xmlns=\\\"http://www.w3.org/1998/Math/MathML\\\" display=\\\"inline\\\"><mstyle displaystyle=\\\"true\\\"><mrow><mn>10</mn><mrow><mtext>&#x000A0;</mtext><mi mathvariant=\\\"normal\\\">m</mi></mrow><mo>&#x0002F;</mo><mi>&#x00073;</mi></mrow></mstyle></math></h3>\", \"replace\": \"(C) <math xmlns=\\\"http://www.w3.org/1998/Math/MathML\\\" display=\\\"inline\\\"><mstyle displaystyle=\\\"true\\\"><mrow><mn>10</mn><mrow><mtext>&#x000A0;</mtext><mi mathvariant=\\\"normal\\\">m</mi></mrow><mo>&#x0002F;</mo><mi>&#x00073;</mi></mrow></mstyle></math><br/>(D) <math xmlns=\\\"http://www.w3.org/1998/Math/MathML\\\" display=\\\"inline\\\"><mstyle displaystyle=\\\"true\\\"><mrow><mn>40</mn><mrow><mtext>&#x000A0;</mtext><mi mathvariant=\\\"normal\\\">m</mi></mrow><mo>&#x0002F;</mo><mi>&#x00073;</mi></mrow></mstyle></math></h3>\"}}",
+ "model": "gemini-3-flash-preview",
+ "prompt_version": "editfix-v1",
+ "usage": {
+  "promptTokenCount": 1385,
+  "candidatesTokenCount": 321,
+  "totalTokenCount": 64616,
+  "promptTokensDetails": [
+   {
+    "modality": "TEXT",
+    "tokenCount": 1385
+   }
+  ],
+  "thoughtsTokenCount": 62910,
+  "serviceTier": "standard"
+ },
+ "at": "2026-11-11T04:57:18Z"
+}

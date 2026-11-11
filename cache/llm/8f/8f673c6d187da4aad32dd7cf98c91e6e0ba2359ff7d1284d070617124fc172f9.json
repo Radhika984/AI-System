@@ -1,0 +1,19 @@
+{
+ "text": "{\"solutions\": [{\"id\": \"Q1\", \"final_answer\": \"A\", \"numeric_value\": 5.7e-05, \"expression\": \"3 * (0.19 / (100 * 100))\", \"method\": \"Calculate the coefficient of linear expansion (\\u03b1 = \\u0394L / (L\\u2080\\u0394T)) and then use the relation \\u03b3 = 3\\u03b1 for the coefficient of cubical expansion.\", \"confidence\": 1.0, \"problems_noticed\": []}, {\"id\": \"Q2\", \"final_answer\": \"50\", \"numeric_value\": 50.0, \"expression\": \"(7 * 10**6 * (0.1)**3) / (1.4 * 10**11) * 10**9\", \"method\": \"Use the bulk modulus formula \\u0394V = PV/B, assuming a standard edge length of 10 cm for the cube.\", \"confidence\": 0.9, \"problems_noticed\": [\"Missing edge length of the cube; assumed 10 cm based on standard textbook problems.\"]}, {\"id\": \"Q3\", \"final_answer\": \"D\", \"numeric_value\": null, \"expression\": null, \"method\": \"Identify the physiological roles of each hormone pair; Relaxin and Inhibin have unrelated functions and are not antagonistic.\", \"confidence\": 1.0, \"problems_noticed\": []}, {\"id\": \"Q4\", \"final_answer\": \"B\", \"numeric_value\": null, \"expression\": null, \"method\": \"Compare excess pressures (\\u0394P = 4T/R); the hemispherical bubble has a smaller radius of curvature than the sub-hemispherical one, leading to higher internal pressure and air flow from End 1 to End 2.\", \"confidence\": 1.0, \"problems_noticed\": [\"Missing figure, but description is sufficient.\"]}, {\"id\": \"Q5\", \"final_answer\": \"D\", \"numeric_value\": 1.1, \"expression\": \"(12400 / 4000) - 2.0\", \"method\": \"Calculate photon energy (E = hc/\\u03bb), then use Einstein's photoelectric equation (K_max = E - \\u03a6) to find the stopping potential (V_s = K_max/e).\", \"confidence\": 1.0, \"problems_noticed\": []}, {\"id\": \"Q6\", \"final_answer\": \"A,B,D\", \"numeric_value\": null, \"expression\": null, \"method\": \"Analyze the motion of a charged particle in uniform electric and magnetic fields using F = qE and F = q(v \\u00d7 B).\", \"confidence\": 1.0, \"problems_noticed\": []}, {\"id\": \"Q7\", \"final_answer\": \"3113\", \"numeric_value\": 3113.0, \"expression\": \"10 * round(6 * 7.203**2, 1)\", \"method\": \"Calculate the surface area A = 6s^2, round to the correct number of significant digits (4), and then multiply by 10.\", \"confidence\": 0.95, \"problems_noticed\": []}, {\"id\": \"Q8\", \"final_answer\": \"4\", \"numeric_value\": 4.0, \"expression\": \"sqrt(2 * 2 * pi / (pi/2 - pi/4))\", \"method\": \"Set the difference in angular displacements equal to 2\\u03c0 (\\u0394\\u03b8 = 1/2 * \\u0394\\u03b1 * t^2 = 2\\u03c0) and solve for time t.\", \"confidence\": 1.0, \"problems_noticed\": []}, {\"id\": \"Q9\", \"final_answer\": \"20\", \"numeric_value\": 20.0, \"expression\": \"2 * 10\", \"method\": \"Determine the maximum static friction (f_max = \\u03bcN) and compare it to the weight (W = mg); since W < f_max, the friction force equals the weight.\", \"confidence\": 1.0, \"problems_noticed\": []}]}",
+ "model": "gemini-3-flash-preview",
+ "prompt_version": "solverA-v2+batch-v1",
+ "usage": {
+  "promptTokenCount": 1652,
+  "candidatesTokenCount": 984,
+  "totalTokenCount": 65547,
+  "promptTokensDetails": [
+   {
+    "modality": "TEXT",
+    "tokenCount": 1652
+   }
+  ],
+  "thoughtsTokenCount": 62911,
+  "serviceTier": "standard"
+ },
+ "at": "2026-11-11T04:39:28Z"
+}

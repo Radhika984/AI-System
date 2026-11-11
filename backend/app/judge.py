@@ -12,8 +12,13 @@ from . import guard as G
 from . import normalize as N
 from . import taxonomy
 from .llm import prompts as P
-from .llm.client import LLMClient
+from .llm.client import LLMClient, OfflineMiss, QuotaExhausted
 from .models import Edit, JudgeOutput
+
+
+# Flags consumed only by deterministic post-rules in pipeline.finalize; not shown to the judge
+# (the rule decides regardless of the model, and the judge-v1 cache stays valid).
+POST_RULE_ONLY_FLAGS = {"syllabus_claim"}
 
 
 def build_packet(q: dict, qcheck, reports_with_flags: list[dict], solves: dict, agree: dict) -> dict:
@@ -37,7 +42,7 @@ def build_packet(q: dict, qcheck, reports_with_flags: list[dict], solves: dict, 
                 "reportId": r["reportId"],
                 "reportedAt": r["reportedAt"],
                 "source": r.get("source"),
-                "flags": [f["code"] for f in r["flags"]],
+                "flags": [f["code"] for f in r["flags"] if f["code"] not in POST_RULE_ONLY_FLAGS],
                 # escaped so a comment can never close the <student_comment> tag
                 "comment_escaped": html.escape(r.get("comment") or "", quote=False),
             }
@@ -147,8 +152,16 @@ def fix_edit_once(q: dict, repair: str, edit: Edit, errors: list[str], client: L
                                        prompt_version=P.EDIT_FIX_VERSION)
         e = (data or {}).get("edit")
         return Edit(**e) if e else None
+    except (QuotaExhausted, OfflineMiss):
+        # Optional retry: without quota we simply don't repair the edit. The case then
+        # routes to faculty_review with edit=null - the conservative direction.
+        raise _RepairSkipped()
     except (ValidationError, ValueError, TypeError):
         return None
+
+
+class _RepairSkipped(Exception):
+    pass
 
 
 def guarded_edit(q: dict, repair: str | None, proposal, client: LLMClient | None) -> tuple[Edit | None, list[str]]:
@@ -166,7 +179,11 @@ def guarded_edit(q: dict, repair: str | None, proposal, client: LLMClient | None
     log += [f"guard rejected v1: {x}" for x in g.errors]
     if client is None:
         return None, log
-    fixed = fix_edit_once(q, repair, edit, g.errors, client)
+    try:
+        fixed = fix_edit_once(q, repair, edit, g.errors, client)
+    except _RepairSkipped:
+        log.append("edit-repair retry skipped (free-tier quota exhausted) -> no edit, faculty decides")
+        return None, log
     if fixed is None:
         log.append("edit-fix returned no edit")
         return None, log

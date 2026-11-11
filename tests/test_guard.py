@@ -159,3 +159,57 @@ def test_route_guard_failure_drops_edit(qof):
                 edit=E("question", "nope-not-present", "x"), confidence=0.99,
                 injection_in_group=False, solver_agreement=AGREE)
     assert r.route == "faculty_review" and r.edit is None
+
+
+# ---------------- option_repair: restore keyed option only (regression: real run invented "(D) 40 m/s")
+
+
+def _r009_invented_edit(q):
+    from app import normalize as N
+    html = N.body(q)["question"]
+    tail = html[html.rindex("(C)"):]
+    return E("question", tail, tail.replace("</h3>", "<br/>(D) 40 m/s</h3>"))
+
+
+def test_option_repair_invented_distractor_never_auto(qof):
+    q = qof("R009")
+    edit = _r009_invented_edit(q)
+    assert G.check_edit(q, "option_repair", edit).ok  # structurally fine...
+    solves = {"A": {"final_answer": "C", "numeric_value": 10.0}, "B": {"final_answer": "C", "numeric_value": 10.0}}
+    r = G.route(q=q, verdict="defect", repair="option_repair", edit=edit, confidence=1.0, injection_in_group=False,
+                solver_agreement={"agree": True, "answer": "C", "matches_key": True, "numeric_ok": True}, solves=solves)
+    assert r.route == "faculty_review" and r.edit is None  # ...but authored content: never auto, never suggested
+    assert any("authored content" in x for x in r.reasons)
+
+
+def test_option_repair_restores_keyed_blank_when_solvers_computed_it(qof):
+    q = qof("R011")
+    edit = E("question", "(C) <br />", "(C) 1 : 1<br />")
+    solves = {"A": {"final_answer": "C", "numeric_value": None},  # real run: A picked the blank C
+              "B": {"final_answer": "None of these", "numeric_value": 1.0}}  # real run: B computed 1:1
+    r = G.route(q=q, verdict="defect", repair="option_repair", edit=edit, confidence=1.0, injection_in_group=False,
+                solver_agreement={"agree": False, "answer": None, "matches_key": False}, solves=solves)
+    assert r.route == "auto_apply", r.reasons
+
+
+def test_option_repair_wrong_value_blocked(qof):
+    q = qof("R011")
+    r = G.route(q=q, verdict="defect", repair="option_repair", edit=E("question", "(C) <br />", "(C) 4 : 3<br />"),
+                confidence=1.0, injection_in_group=False, solver_agreement={},
+                solves={"A": {"final_answer": "C", "numeric_value": 1.0}, "B": {"final_answer": "C", "numeric_value": 1.0}})
+    assert r.route == "faculty_review"
+
+
+def test_syllabus_claim_flag(qof, reps):
+    from app import precheck as P
+    assert "syllabus_claim" in {f.code for f in P.check_report(reps["R026"], qof("R026"))}
+    assert "syllabus_claim" not in {f.code for f in P.check_report(reps["R042"], qof("R042"))}
+
+
+def test_edit_may_not_introduce_latex(qof):
+    # regression: the real run proposed "$K = \frac{h^2}{2m\lambda^2}$" as a solution_fix for R018
+    g = G.check_edit(qof("R016"), "solution_fix", E("solution", "a = 40 cm", r"$a = \sqrt{400}$ = 20 cm"))
+    assert not g.ok and any("LaTeX" in e for e in g.errors)
+    assert not G.check_faculty_edit(qof("R016"), E("solution", "a = 40 cm", "$a=20$ cm")).ok
+    # removing LaTeX (markup_leak) is still allowed
+    assert G.check_edit(qof("R014"), "markup_leak", E("question", r"\frac{7}{8}", "7/8")).ok

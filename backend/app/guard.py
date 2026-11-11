@@ -54,6 +54,12 @@ def apply_edit(q: dict, edit: Edit) -> dict:
     return nq
 
 
+def _introduces_latex(find: str, replace: str) -> bool:
+    def latex(s: str) -> set[str]:
+        return set(_LATEX_CMD.findall(s)) | ({"$"} if re.search(r"\$[^$]+\$", s) else set())
+    return bool(latex(replace) - latex(find))
+
+
 def _is_subsequence(small: str, big: str) -> bool:
     it = iter(big)
     return all(ch in it for ch in small)
@@ -111,6 +117,8 @@ def check_edit(q: dict, repair: str, edit: Edit | dict | None) -> GuardResult:
         errs.append("edit introduces an image; images are authored content (diagram repair)")
     if len(edit.replace) > max(600, 3 * len(edit.find) + 400):
         errs.append("replace is too large for a surgical edit")
+    if _introduces_latex(edit.find, edit.replace):
+        errs.append("replace introduces raw LaTeX ($...$ or \\command) - students would see code (markup_leak)")
     if errs:
         return GuardResult(False, errs)
 
@@ -217,6 +225,8 @@ def check_faculty_edit(q: dict, edit: Edit | dict) -> GuardResult:
         errs.append(f"find must occur exactly once in {edit.field} (found {n})")
     if _DANGEROUS.search(edit.replace):
         errs.append("replace contains script/style/event-handler markup")
+    if _introduces_latex(edit.find, edit.replace):
+        errs.append("replace introduces raw LaTeX ($...$ or \\command) - students would see code")
     if errs:
         return GuardResult(False, errs)
     after = src.replace(edit.find, edit.replace, 1)
@@ -239,8 +249,46 @@ class RouteDecision:
     reasons: list[str]
 
 
+def _option_value(text: str) -> float | None:
+    """'1 : 1' -> 1.0, '9:16' -> 0.5625, '40 m/s' -> 40.0"""
+    t = (text or "").replace(" ", "")
+    m = re.fullmatch(r"(-?\d+(?:\.\d+)?):(-?\d+(?:\.\d+)?)", t)
+    if m and float(m.group(2)) != 0:
+        return float(m.group(1)) / float(m.group(2))
+    m = re.search(r"-?\d+(?:\.\d+)?", t)
+    return float(m.group()) if m else None
+
+
+def option_restore_check(q: dict, edit: Edit | None, solves: dict | None) -> list[str]:
+    """option_repair may only RESTORE the keyed option, with content the blind solvers computed.
+    A missing/blank distractor is authored content -> never auto (SPEC §3). Returns blocking reasons."""
+    if edit is None or edit.field != "question":
+        return ["no restorable option edit"]
+    b = N.body(q)
+    _, o0 = N.split_options(b.get("question", ""))
+    _, o1 = N.split_options(apply_edit(q, edit)[q["questionType"]]["question"])
+    touched = [L for L in o1 if o0.get(L, "") != o1[L]]
+    key, _ = N.normalize_answer(q["questionType"], b.get("answer"))
+    keyed = key if isinstance(key, list) else [key]
+    if len(touched) != 1 or touched[0] not in keyed:
+        return [f"edit writes option(s) {touched} but only the keyed option {keyed} may be restored; "
+                "a missing distractor is authored content"]
+    L = touched[0]
+    val = _option_value(o1[L])
+    reasons = []
+    solves = solves or {}
+    nums = [s.get("numeric_value") for s in solves.values() if s.get("numeric_value") is not None]
+    if val is None or not any(abs(n - val) <= 0.02 * max(1.0, abs(val)) for n in nums):
+        reasons.append(f"restored option ({L}) value not reproduced by any blind solver")
+    for name, s in solves.items():
+        picked = re.findall(r"\b([A-D])\b", str(s.get("final_answer", "")).upper())
+        if picked and picked[0] != L and o0.get(picked[0], "").strip():
+            reasons.append(f"solver {name} picked a different existing option ({picked[0]})")
+    return reasons
+
+
 def route(*, q: dict, verdict: str, repair: str | None, edit: Edit | None, confidence: float,
-          injection_in_group: bool, solver_agreement: dict) -> RouteDecision:
+          injection_in_group: bool, solver_agreement: dict, solves: dict | None = None) -> RouteDecision:
     """SPEC §3. `solver_agreement` = {"agree": bool, "answer": str|None, "matches_key": bool, "numeric_ok": bool|None}."""
     if verdict != "defect":
         return RouteDecision("no_change", None, [f"verdict {verdict} is not a defect"])
@@ -271,8 +319,12 @@ def route(*, q: dict, verdict: str, repair: str | None, edit: Edit | None, confi
         if solver_agreement.get("numeric_ok") is False:
             reasons.append("restricted evaluator did not reproduce the solvers' value")
     if repair == "option_repair":
-        if not solver_agreement.get("agree") or not solver_agreement.get("matches_key"):
-            reasons.append("restored option is not independently verified as the keyed answer")
+        blockers = option_restore_check(q, edit, solves)
+        if blockers:
+            reasons += blockers
+            if any("authored content" in b for b in blockers):
+                edit = None  # never even suggest invented options
+        
     if repair in ("solution_fix", "solution_missing"):
         if not solver_agreement.get("agree") or not solver_agreement.get("matches_key"):
             reasons.append("solvers do not confirm the keyed answer the solution must end at")

@@ -78,3 +78,19 @@ Assistant's response: confirmed the allowlist + stop-on-quota already enforce th
 gemini-3.6-flash also hit 20/day (my usage estimate missed that rate-limited retries count). Stopped safely again, no paid call. Final assignment (all free tier):
 solver A `gemini-3-flash-preview`, solver B `gemini-3.1-flash-lite` (different models → independent errors), judge `gemini-3-flash-preview`; solver batch 10, judge batch 4 → ~18 calls for 39 questions.
 Trade-off noted honestly: judge and solver A share a model. Solvers never see the key/solution/comments, so blindness holds, but the judge is not a third independent model.
+
+## 2026-11-11 10:40 IST — Full run (P3) + edit-repair quota
+
+All solver + judge calls completed (18 batched calls). The one optional `editfix-v1` retry then hit gemini-3-flash-preview's 20/day cap and — by my earlier design — `QuotaExhausted` aborted the whole run. Changed: a quota/offline miss inside the *optional* edit-repair retry is now logged ("edit-repair retry skipped") and the case routes to faculty with edit=null (conservative). Re-ran: 44 rows, all other calls served from cache.
+
+## 2026-11-11 10:50 IST — Disagreement review vs hand audit (`scripts/eval_results.py`) — AI mistakes #2 and #3
+
+First full results: verdict 43/44, repair 42/44, route 37/44 vs my pre-registered hand audit. Investigated each, did not force:
+
+* **AI mistake #2 (R009/R010): the judge invented an option and my guard auto-applied it.** The judge's edit appended `(D) 40 m/s` to a question whose option D is simply missing (a distractor nobody knows). SPEC §3 says a missing distractor is authored content → faculty, edit=null — but `guard.route()` only checked "solvers agree with the key", never *which* option the edit restores. Caught by: eval disagreement (engine auto_apply vs audit faculty_review) → read the edit text. Fix: `guard.option_restore_check` — option_repair may only restore the single **keyed** option, its value must be reproduced by ≥1 blind solver's numeric answer, and no solver may pick a different existing option; otherwise faculty_review and the edit is dropped entirely. Regression tests use the exact invented edit.
+* **R011 (verification gap, same code):** both solvers had computed 1:1 (A picked the blank (C); B said "None of these", numeric 1.0) but the old rule required letter agreement. The new rule verifies the restored *content* → auto_apply.
+* **R026 (policy):** judge ruled "outgroup analysis is in syllabus → no_error". The taxonomy defines `syllabus` as "Student says it is outside the syllabus. **Faculty confirm**; question stays live meanwhile" — scope is a faculty decision. Added deterministic rule (`syllabus_claim` flag → defect/syllabus/faculty_review, template reply). The flag is kept out of the judge packet so the judge-v1 cache stays byte-identical.
+* **AI mistake #3 (R018/R019): suggested fix would itself have been a defect.** The `solution_fix` suggestion (faculty_review, so not live) wrote raw LaTeX `$K = \frac{h^2}{2m\lambda^2}$` into an HTML/MathML solution — a one-click approve would have created a `markup_leak`. Caught by reading every edit in results.json. Fix: guard rejects any edit (AI or faculty) that *introduces* LaTeX commands or `$...$`.
+* **Accepted as engine output (safer than my audit):** R018/R019 — both blind solvers got the physics wrong (C and A; true answer B = 16.8 eV) and disagreed, so the system refused to auto-apply a solution rewrite: the safety net working. R021 — judge chose `type_mismatch` (student: "only B is correct but its multiple correct type"), a defensible reading; malformed-key edit was rejected by the guard (judge wrote `"B"` not `["B"]`) and the repair retry had no quota → faculty.
+
+Final (offline cache replay, 0 API calls): VALIDATION PASS; verdict 44/44, repair 43/44, route 41/44 vs hand audit; routes auto_apply 16 / faculty_review 11 / no_change 17. No manual edits to results.json.

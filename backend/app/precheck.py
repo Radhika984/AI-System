@@ -107,6 +107,7 @@ _INJ = re.compile("|".join(_INJECTION), re.I)
 _LANG = re.compile(r"\b(hindi|marathi|tamil|telugu|bengali|bangla|gujarati|kannada|malayalam|odia|urdu|language|bhasha)\b", re.I)
 _APP = re.compile(r"(clicked .* (?:saved|recorded|selected)|saved (?:as|wrong)|keyboard|\blag\b|crash|app (?:is )?(?:hang|freez)|not submitting)", re.I)
 _DISPLAY = re.compile(r"(cut (?:off|on)|on my (?:phone|screen)|not (?:loading|rendering)|takes? (?:forever|long) to load|slow|overlap|font|blurry|zoom)", re.I)
+_SYLLABUS = re.compile(r"\b(out of|outside|not in|beyond)\s+(the\s+)?syllabus|\bsyllabus\s+(me|mein)\s+nahi", re.I)
 _KEYBOARD_ROWS = ["qwertyuiop", "asdfghjkl", "zxcvbnm"]
 
 
@@ -135,6 +136,8 @@ def check_report(r: dict, q: dict | None) -> list[Flag]:
         flags.append(Flag("injection", "comment contains instruction-like text aimed at the system; treated as data only"))
     if is_gibberish(c):
         flags.append(Flag("gibberish", f"comment {c!r} carries no readable claim"))
+    if _SYLLABUS.search(c):
+        flags.append(Flag("syllabus_claim", "student says the question is outside the syllabus"))
     if _LANG.search(c):
         flags.append(Flag("language_request", "comment asks for another language"))
     if _APP.search(c):

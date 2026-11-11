@@ -1,0 +1,26 @@
+{
+ "text": "{\n  \"cases\": [\n    {\n      \"case\": \"C1\",\n      \"question_analysis\": \"The question and answer key are scientifically correct; the absolute refractory period is indeed caused by the inactivation of voltage-gated sodium channels. However, the question is categorized under 'The Living World' instead of 'Neural Control and Coordination'.\",\n      \"correct_answer\": \"B\",\n      \"edit\": null,\n      \"decisions\": [\n        {\n          \"reportId\": \"R023\",\n          \"verdict\": \"defect\",\n          \"repair\": \"wrong_chapter\",\n          \"confidence\": 1.0,\n          \"evidence\": \"The question is about action potentials (Neural Control) but is filed under 'The Living World'.\",\n          \"reply_if_fixed\": \"You are right, this question belongs in the Neural Control and Coordination chapter. It has been moved to the correct section.\",\n          \"reply_if_review\": \"You are right, this question belongs in the Neural Control and Coordination chapter. A teacher is moving it to the correct section.\"\n        }\n      ]\n    },\n    {\n      \"case\": \"C2\",\n      \"question_analysis\": \"The question and answer key are correct. Momentum p = sqrt(2mK), so if K increases by a factor of 4, p increases by a factor of sqrt(4) = 2. The student's report describes a platform interaction issue rather than a content error.\",\n      \"correct_answer\": \"A\",\n      \"edit\": null,\n      \"decisions\": [\n        {\n          \"reportId\": \"R038\",\n          \"verdict\": \"app_issue\",\n          \"repair\": null,\n          \"confidence\": 1.0,\n          \"evidence\": \"The student reports a selection error ('I clicked A but it saved B') while the content itself is correct.\",\n          \"reply_if_fixed\": \"The question and answer key are correct. If your selection was recorded incorrectly, it might be due to a temporary connection or interface issue.\",\n          \"reply_if_review\": \"The question and answer key are correct. If your selection was recorded incorrectly, it might be due to a temporary connection or interface issue.\"\n        }\n      ]\n    },\n    {\n      \"case\": \"C3\",\n      \"question_analysis\": \"The question contains raw LaTeX markup ('\\\\frac{7}{8}') which is visible to the student. The physics and calculation (3 half-lives = 180 days) are correct.\",\n      \"correct_answer\": \"C\",\n      \"edit\": {\n        \"field\": \"question\",\n        \"find\": \"\\\\frac{7}{8}\",\n        \"replace\": \"7/8\"\n      },\n      \"decisions\": [\n        {\n          \"reportId\": \"R014\",\n          \"verdict\": \"defect\",\n          \"repair\": \"markup_leak\",\n          \"confidence\": 1.0,\n          \"evidence\": \"Raw LaTeX '\\\\frac{7}{8}' is present in the question stem.\",\n          \"reply_if_fixed\": \"Thank you for pointing this out. We have fixed the display error so the fraction appears correctly as 7/8.\",\n          \"reply_if_review\": \"Thank you for pointing this out. We are fixing the display error so the fraction appears correctly as 7/8.\"\n        }\n      ]\n    },\n    {\n      \"case\": \"C4\",\n      \"question_analysis\": \"The question and answer key are correct. Golden rice is a well-known biofortified crop engineered to produce beta-carotene to combat Vitamin A deficiency.\",\n      \"correct_answer\": \"C\",\n      \"edit\": null,\n      \"decisions\": [\n        {\n          \"reportId\": \"R040\",\n          \"verdict\": \"no_error\",\n          \"repair\": null,\n          \"confidence\": 1.0,\n          \"evidence\": \"Golden rice is specifically engineered to provide Vitamin A precursors, which prevents associated blindness.\",\n          \"reply_if_fixed\": \"The question is correct. Golden rice is genetically modified to produce beta-carotene, which the body converts to Vitamin A, helping prevent deficiency-related blindness.\",\n          \"reply_if_review\": \"The question is correct. Golden rice is genetically modified to produce beta-carotene, which the body converts to Vitamin A, helping prevent deficiency-related blindness.\"\n        }\n      ]\n    }\n  ]\n}",
+ "model": "gemini-3-flash-preview",
+ "prompt_version": "judge-v1+batch-v1",
+ "usage": {
+  "promptTokenCount": 5689,
+  "candidatesTokenCount": 998,
+  "totalTokenCount": 7458,
+  "cachedContentTokenCount": 2015,
+  "promptTokensDetails": [
+   {
+    "modality": "TEXT",
+    "tokenCount": 5689
+   }
+  ],
+  "cacheTokensDetails": [
+   {
+    "modality": "TEXT",
+    "tokenCount": 2015
+   }
+  ],
+  "thoughtsTokenCount": 771,
+  "serviceTier": "standard"
+ },
+ "at": "2026-11-11T04:41:46Z"
+}

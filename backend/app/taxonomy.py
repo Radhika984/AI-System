@@ -45,7 +45,7 @@ TIER_OF_REPAIR = {
     "answer_form": 4, "type_mismatch": 4, "wrong_chapter": 4, "syllabus": 4,
 }
 TIER_LABEL = {
-    1: "Wrong answer / unanswerable",
+    1: "Wrong answer / unanswerable / AI unsure",
     2: "Missing content",
     3: "Solution error",
     4: "Cosmetic / metadata",

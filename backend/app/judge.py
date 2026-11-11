@@ -152,10 +152,12 @@ def fix_edit_once(q: dict, repair: str, edit: Edit, errors: list[str], client: L
                                        prompt_version=P.EDIT_FIX_VERSION)
         e = (data or {}).get("edit")
         return Edit(**e) if e else None
-    except (QuotaExhausted, OfflineMiss):
+    except QuotaExhausted:
         # Optional retry: without quota we simply don't repair the edit. The case then
         # routes to faculty_review with edit=null - the conservative direction.
-        raise _RepairSkipped()
+        raise _RepairSkipped("free-tier quota exhausted")
+    except OfflineMiss:
+        raise _RepairSkipped("offline cache replay; no cached edit-repair response")
     except (ValidationError, ValueError, TypeError):
         return None
 
@@ -181,8 +183,8 @@ def guarded_edit(q: dict, repair: str | None, proposal, client: LLMClient | None
         return None, log
     try:
         fixed = fix_edit_once(q, repair, edit, g.errors, client)
-    except _RepairSkipped:
-        log.append("edit-repair retry skipped (free-tier quota exhausted) -> no edit, faculty decides")
+    except _RepairSkipped as why:
+        log.append(f"edit-repair retry skipped ({why}) -> no edit, faculty decides")
         return None, log
     if fixed is None:
         log.append("edit-fix returned no edit")

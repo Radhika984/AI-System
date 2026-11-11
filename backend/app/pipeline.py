@@ -19,7 +19,32 @@ from . import taxonomy
 from .llm.client import LLMClient
 from .models import Edit, Result, count_sentences
 
-SOLVER_DISPUTE_CONF_CAP = 0.6
+SOLVER_DISPUTE_CONF_CAP = 0.6   # both solvers agree with each other but contradict the key
+SOLVER_DISAGREE_CONF_CAP = 0.7  # the two blind solvers disagree with each other (< auto-apply 0.85)
+
+MISSING_CONTENT_REPAIRS = {"stem_data", "option_repair", "diagram"}
+_MISSING_WORDS = re.compile(r"\b(missing|not given|not provided|not stated|blank|not present|absent)\b", re.I)
+
+
+def solvers_dispute(agree: dict, solves: dict, verdict: str, repair: str | None) -> str | None:
+    """SPEC §3 rule 5: two DEFINITE blind answers that differ. A solver abstains (is not counted) if
+    it gave no usable answer, or if it reported missing content while the verdict is itself a
+    missing-content defect - its failure is evidence for the defect, not a disagreement.
+    Returns a short description of the dispute, or None."""
+    if agree.get("agree"):  # solver.agreement already compared with numeric tolerance (e.g. 3113 vs 3112.99)
+        return None
+    definite = {}
+    for name, ans in (agree.get("answers") or {}).items():
+        if ans is None:
+            continue
+        s = solves.get(name, {})
+        if verdict == "defect" and repair in MISSING_CONTENT_REPAIRS and \
+                any(_MISSING_WORDS.search(p or "") for p in s.get("problems_noticed") or []):
+            continue
+        definite[name] = ans
+    if len(definite) >= 2 and len(set(definite.values())) > 1:
+        return ", ".join(f"{k}={v}" for k, v in sorted(definite.items()))
+    return None
 
 # Used only when a deterministic rule overrides the model's verdict, or the model's reply is unusable.
 FALLBACK_REPLY = {
@@ -87,20 +112,25 @@ def finalize(q, qcheck, rflags, solves, agree, jo, jmeta, client) -> tuple[list[
             overrides.append(f"verdict {verdict}->defect/syllabus (syllabus scope is a faculty decision)")
             verdict, repair = "defect", "syllabus"
 
-        # Rule: solvers agree with each other but contradict the stored key while the
-        # judge calls it fine -> keep verdict, cap confidence, flag for attention.
-        needs_attention = False
+        # SPEC §3 rule 5: disagreement lowers confidence and escalates; it never changes the verdict.
+        needs_attention, attention_reason = False, None
+        # 5a. solvers agree with each other but contradict the stored key while the verdict is a non-defect
         if verdict != "defect" and agree.get("agree") and not agree.get("matches_key") \
                 and q["questionType"] != "mcq" and agree.get("numeric_ok") is not False:
-            needs_attention = True
+            needs_attention, attention_reason = True, "both blind solvers dispute the stored key"
             if conf > SOLVER_DISPUTE_CONF_CAP:
                 overrides.append(f"confidence {conf:.2f}->{SOLVER_DISPUTE_CONF_CAP} (both solvers dispute the key)")
                 conf = SOLVER_DISPUTE_CONF_CAP
-
-        # Rule: solvers disagree on an answer-key change -> cap confidence.
-        if verdict == "defect" and repair == "answer_key" and not agree.get("agree") and conf > 0.75:
-            overrides.append(f"confidence {conf:.2f}->0.75 (blind solvers disagree)")
-            conf = 0.75
+        # 5b. the two blind solvers disagree with each other (any verdict)
+        dispute = solvers_dispute(agree, solves, verdict, repair)
+        if dispute:
+            if conf > SOLVER_DISAGREE_CONF_CAP:
+                overrides.append(f"confidence {conf:.2f}->{SOLVER_DISAGREE_CONF_CAP} (blind solvers disagree: {dispute})")
+                conf = SOLVER_DISAGREE_CONF_CAP
+            if verdict != "defect":  # non-defects stay no_change by schema -> escalate in the console instead
+                needs_attention = True
+                attention_reason = attention_reason or f"blind solvers disagree ({dispute})"
+            # defects: the cap (< auto-apply threshold) makes guard.route send it to faculty_review
 
         edit, guard_log = None, []
         if verdict == "defect" and repair and taxonomy.repair_is_auto(repair):
@@ -126,7 +156,8 @@ def finalize(q, qcheck, rflags, solves, agree, jo, jmeta, client) -> tuple[list[
         results.append(res)
         per_report[r["reportId"]] = {
             "flags": r["flags"], "overrides": overrides, "route_reasons": rd.reasons,
-            "guard_log": guard_log, "needs_attention": needs_attention, "comment": r.get("comment"),
+            "guard_log": guard_log, "needs_attention": needs_attention, "attention_reason": attention_reason,
+            "comment": r.get("comment"),
             "reply_if_fixed": d.reply_if_fixed, "reply_if_review": d.reply_if_review,
             "judge_verdict": d.verdict, "judge_repair": d.repair, "judge_confidence": d.confidence,
         }

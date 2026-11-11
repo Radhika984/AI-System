@@ -204,17 +204,17 @@ function Replies({ c }) {
   )
 }
 
-export default function CaseView({ c, readOnly, onAction, busy, error }) {
+export default function CaseView({ c, readOnly, canAct, onAction, busy, error }) {
   const [editing, setEditing] = useState(false)
   const [note, setNote] = useState('')
   useEffect(() => {
     const h = (e) => {
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) || e.metaKey || e.ctrlKey) return
-      if (e.key === 'e' && !readOnly) setEditing(true)
+      if (e.key === 'e' && !readOnly && canAct) setEditing(true)
     }
     window.addEventListener('keydown', h)
     return () => window.removeEventListener('keydown', h)
-  }, [readOnly])
+  }, [readOnly, canAct])
   const st = STATUS[c.status] || STATUS.pending
   const done = ['approved', 'edited', 'rejected'].includes(c.status)
   const approveLabel =
@@ -237,7 +237,7 @@ export default function CaseView({ c, readOnly, onAction, busy, error }) {
           <Confidence value={c.confidence} />
           {c.needs_attention && (
             <span className="rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-800">
-              Both blind solvers disagree with the stored key. Please check.
+              AI unsure: {c.attention_reason || 'the blind solvers disagree'}. Please check.
             </span>
           )}
         </div>
@@ -327,6 +327,10 @@ export default function CaseView({ c, readOnly, onAction, busy, error }) {
           {error && <p className="w-full text-sm font-medium text-rose-700">{error}</p>}
           {readOnly ? (
             <p className="text-sm text-amber-800">Read-only snapshot: actions are disabled because the API is unreachable.</p>
+          ) : !canAct ? (
+            <p className="text-sm text-amber-800">
+              View only. Enter the <b>reviewer passcode</b> (top right) to approve, edit or reject; the server checks it on every action.
+            </p>
           ) : done ? (
             <>
               <p className="text-sm text-slate-600">

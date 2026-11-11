@@ -45,7 +45,7 @@ export default function Queue({ items, selected, onSelect, filter, setFilter }) 
         {byTier.map((g, gi) => (
           <section key={gi}>
             <h3 className="sticky top-0 z-10 border-b border-slate-200 bg-slate-100/95 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-600 backdrop-blur">
-              {g.tier < 5 || g.label.startsWith('AI') ? `Priority ${g.tier} · ` : ''}
+              {g.tier < 5 ? `Priority ${g.tier} · ` : ''}
               {g.label} <span className="font-normal">({g.items.length})</span>
             </h3>
             <ul>
@@ -74,6 +74,11 @@ export default function Queue({ items, selected, onSelect, filter, setFilter }) 
                           <span className={st.tone}>{st.label}</span>
                         </span>
                         <span>{c.subject}</span>
+                        {c.needs_attention && (
+                          <span className="rounded bg-rose-100 px-1 font-semibold text-rose-800" title={c.attention_reason || ''}>
+                            AI unsure
+                          </span>
+                        )}
                         {c.reporters > 1 && <span className="font-semibold text-rose-700">{c.reporters} students</span>}
                         <span>AI {Math.round(c.confidence * 100)}%</span>
                         <span>{timeAgo(c.oldest_report)}</span>

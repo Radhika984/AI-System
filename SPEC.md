@@ -51,7 +51,11 @@ reportId, questionId, verdict, repair, edit, route, confidence, evidence, studen
    * `spelling`: only letters change (no digits/symbols/tags move);
    * `solution_fix` / `solution_missing`: the edited solution must still end at the keyed answer the solvers agree on.
 4. Injection-flagged reports are never auto-applied; their comment is only ever shown to the LLM as quoted data.
-5. Disagreement between solvers, or solver vs key when the judge says `no_error`, lowers confidence and escalates (`faculty_review`, or priority 1 in the console for a `no_error`) rather than guessing.
+5. Disagreement between solvers, or solver vs key when the judge says `no_error`, lowers confidence and escalates (`faculty_review`, or priority 1 in the console for a `no_error`) rather than guessing. Implemented in `pipeline.solvers_dispute` and `finalize`:
+   * solvers agree but contradict the key on a non-defect: confidence ≤ 0.6, console priority 1;
+   * solvers give different definite answers, for any verdict: confidence ≤ 0.7, which is below the 0.85 auto-apply threshold, so defects go to `faculty_review`; non-defects stay `no_change` (schema) and are raised to console priority 1 "AI unsure";
+   * a solver abstains if it has no usable answer, or if it reported missing content while the verdict is a missing-content defect (stem_data, option_repair, diagram);
+   * the verdict is never changed by this rule.
 6. Deterministic verdict overrides (logged per report): verified `already_fixed` (errorHistory after the report and the old text gone); a syllabus claim is always `defect/syllabus/faculty_review` (taxonomy: "Faculty confirm").
 
 ## 4. Pipeline
@@ -94,9 +98,14 @@ Tier 1 answer_key / wrong_question / unsound → Tier 2 stem_data / option_repai
 | R-S1 | original `data/` unchanged | `tests/test_data_integrity.py` | ✅ SHA test |
 | R-S2 | no secrets in repo | `.gitignore`, P10 scan | ✅ scan clean (P10 repeat) |
 | R-S3 | ₹0 LLM spend (free tier only) | `config.py` | ✅ allowlist + no fallback |
+| R-S4 | Backend-enforced reviewer passcode on all writes; fail-closed; rate-limited | `security.py`, `main.py` | ✅ `tests/test_security.py`, e2e |
+| R-S5 | Safe demo reset (admin token, archive, no public unrestricted reset) | `store.reset_demo`, `/api/admin/reset`, `scripts/reset_demo_state.py` | ✅ `tests/test_security.py` |
+| R-S6 | SPEC §3 rule 5 solver-disagreement confidence cap + escalation | `pipeline.solvers_dispute` | ✅ `tests/test_solver.py`, `test_reproducible` |
+| R-E2E | Browser e2e checks in repo | `tests/e2e/run_e2e.py` | ✅ 17/17 |
 
 ## 7. Known conflicts / decisions
 
 * Repo folder is `acadza-report-fix/` (the extracted folder) rather than the plan's `report-to-fix/` — kept to avoid creating a second project.
 * The brief asks for the four personal answers **in the email reply**, not the README; they are not written into any repo file.
 * Render free tier has an ephemeral disk: faculty actions/audit persist across requests but are lost on redeploy/spin-down. Disclosed in README and UI.
+* Writes are protected by a shared `REVIEWER_PASSCODE` (env only, fail-closed). A clean demo state is restored by `POST /api/admin/reset` (separate `ADMIN_RESET_TOKEN`, absent unless configured) or by `scripts/reset_demo_state.py`. Both archive the state; neither touches `data/`.

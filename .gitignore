@@ -28,3 +28,6 @@ Thumbs.db
 .vscode/
 .idea/
 artifacts/*.log
+
+# e2e screenshots
+tests/e2e/out/

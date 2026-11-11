@@ -245,7 +245,7 @@
     "repair": "solution_fix",
     "edit": null,
     "route": "faculty_review",
-    "confidence": 1.0,
+    "confidence": 0.7,
     "evidence": "The solution text mentions a wavelength of 5.47 Å, which does not match the 0.3 nm (3 Å) given in the question.",
     "student_reply": "You are right; the solution text belongs to a different question. We are updating it to correctly reflect the calculation for 0.3 nm."
   },
@@ -256,7 +256,7 @@
     "repair": "solution_fix",
     "edit": null,
     "route": "faculty_review",
-    "confidence": 1.0,
+    "confidence": 0.7,
     "evidence": "The solution incorrectly uses 5.47 Å instead of the 0.3 nm provided in the stem.",
     "student_reply": "We appreciate your feedback. The solution is being corrected to use the 0.3 nm wavelength given in the question instead of 5.47 Å."
   },
@@ -282,7 +282,7 @@
     "repair": "type_mismatch",
     "edit": null,
     "route": "faculty_review",
-    "confidence": 0.95,
+    "confidence": 0.7,
     "evidence": "The reduction by factor 8 in 3 min implies T_half = 1 min, so mean life = 1/ln2 = 1.44 min. The key [\"\", \"B\"] is malformed and the type should be scq.",
     "student_reply": "You are correct that only B is the right answer. A teacher is updating the question type and fixing the answer key."
   },
@@ -378,7 +378,7 @@
     "repair": null,
     "edit": null,
     "route": "no_change",
-    "confidence": 1.0,
+    "confidence": 0.7,
     "evidence": "Solving the system F - 100μ = 10 and 2F - 100μ = 100 yields μ = 0.8.",
     "student_reply": "The calculation shows that μ = 0.8. From the first condition, F = 10 + 100μ. Substituting this into the second condition (2F - 100μ = 100) gives 2(10 + 100μ) - 100μ = 100, which simplifies to 100μ = 80."
   },
@@ -389,7 +389,7 @@
     "repair": null,
     "edit": null,
     "route": "no_change",
-    "confidence": 1.0,
+    "confidence": 0.7,
     "evidence": "With T = 16s, ω = π/8. At t = 2s, v = A(π/8)cos(π/4) = Aπ/(8√2). Setting v = π gives A = 8√2 m.",
     "student_reply": "The velocity of a particle in SHM starting from equilibrium is v = Aω cos(ωt). With ω = π/8 and t = 2 s, we get π = A(π/8)cos(π/4), which simplifies to A = 8√2 m."
   },
@@ -411,7 +411,7 @@
     "repair": null,
     "edit": null,
     "route": "no_change",
-    "confidence": 1.0,
+    "confidence": 0.7,
     "evidence": "Calculation: 0.08 m = 8 cm. The question specifically asks for the shift in cm.",
     "student_reply": "The calculated shift is 0.08 meters. Since the question asks for the answer in centimeters, we convert it: 0.08 m = 8 cm."
   },
@@ -433,7 +433,7 @@
     "repair": "unsound",
     "edit": null,
     "route": "faculty_review",
-    "confidence": 0.9,
+    "confidence": 0.7,
     "evidence": "Assertion is false (I = 2I0 for phase pi/2) and Reason is false (intensity is not always the sum).",
     "student_reply": "For a phase difference of π/2, the resultant intensity is 2I₀, not I₀. A teacher is reviewing the question as both the assertion and reason appear to be incorrect."
   },
@@ -488,7 +488,7 @@
     "repair": null,
     "edit": null,
     "route": "no_change",
-    "confidence": 1.0,
+    "confidence": 0.7,
     "evidence": "Student requested the question in Hindi.",
     "student_reply": "Currently, our questions are provided in English. We are working on adding support for other languages in the future."
   },
@@ -521,7 +521,7 @@
     "repair": "wrong_chapter",
     "edit": null,
     "route": "faculty_review",
-    "confidence": 1.0,
+    "confidence": 0.7,
     "evidence": "The question is about displacement current in a capacitor, which belongs to Electromagnetic Waves, not Geometrical Optics.",
     "student_reply": "You are right that displacement current belongs to the Electromagnetic Waves chapter. Thank you for the feedback; a teacher is now updating the chapter classification."
   },
@@ -543,7 +543,7 @@
     "repair": null,
     "edit": null,
     "route": "no_change",
-    "confidence": 1.0,
+    "confidence": 0.7,
     "evidence": "V_P = (16/2)*(3 - 0.25) = 22 V and V_S = 16/2 = 8 V. The difference is 22 - 8 = 14 V.",
     "student_reply": "The potential at point P is 22 V and at point S is 8 V. The question asks for the potential difference between them, which is 22 - 8 = 14 V."
   }

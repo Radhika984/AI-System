@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { getAudit, getCase, getMode, getQueue, getSnapshotMeta, postAction } from './api/client'
+import { getAudit, getCase, getMode, getPasscode, getQueue, getSnapshotMeta, postAction, setPasscode } from './api/client'
 import CaseView from './components/CaseView'
 import Queue, { isDone } from './components/Queue'
 import { fmtDate } from './components/labels'
@@ -84,6 +84,11 @@ export default function App() {
   const [showWhy, setShowWhy] = useState(false)
   const [meta, setMeta] = useState(null)
   const [actor, setActor] = useActor()
+  const [passcode, setPasscodeState] = useState(getPasscode())
+  const updatePasscode = (v) => {
+    setPasscode(v)
+    setPasscodeState(v)
+  }
   const [mobileList, setMobileList] = useState(true)
 
   const refreshQueue = useCallback(async () => {
@@ -146,7 +151,7 @@ export default function App() {
       const i = visible.findIndex((c) => c.questionId === selected)
       if (e.key === 'j' && visible[i + 1]) select(visible[i + 1].questionId)
       if (e.key === 'k' && i > 0) select(visible[i - 1].questionId)
-      if (getMode() !== 'live' || !current || busy || isDone(current)) return
+      if (getMode() !== 'live' || !passcode || !current || busy || isDone(current)) return
       if (e.key === 'a') onAction({ action: 'approve' })
       if (e.key === 'r') onAction({ action: 'reject' })
     }
@@ -176,15 +181,24 @@ export default function App() {
           <button onClick={() => setShowWhy((v) => !v)} className="text-sm text-indigo-700 underline-offset-2 hover:underline">
             Why this order?
           </button>
-          <div className="ml-auto flex items-center gap-2">
+          <div className="flex w-full min-w-0 items-center gap-2 sm:ml-auto sm:w-auto">
             <input
               value={actor}
               onChange={(e) => setActor(e.target.value)}
               placeholder="Your name (for audit)"
               aria-label="Your name for the audit log"
-              className="w-40 rounded-md border border-slate-300 px-2 py-1 text-sm"
+              className="w-0 min-w-0 flex-1 rounded-md border border-slate-300 px-2 py-1 text-sm sm:w-40 sm:flex-none"
             />
-            <button onClick={() => setAuditOpen(true)} className="rounded-md border border-slate-300 px-2.5 py-1 text-sm hover:bg-slate-50">
+            <input
+              type="password"
+              value={passcode}
+              onChange={(e) => updatePasscode(e.target.value)}
+              placeholder="Reviewer passcode"
+              aria-label="Reviewer passcode"
+              autoComplete="off"
+              className={`w-0 min-w-0 flex-1 rounded-md border px-2 py-1 text-sm sm:w-40 sm:flex-none ${passcode ? 'border-emerald-400' : 'border-amber-400'}`}
+            />
+            <button onClick={() => setAuditOpen(true)} className="shrink-0 rounded-md border border-slate-300 px-2.5 py-1 text-sm hover:bg-slate-50">
               Audit log
             </button>
           </div>
@@ -230,7 +244,7 @@ export default function App() {
             {caseErr && <p className="m-6 text-rose-700">Couldn't load this case: {caseErr}</p>}
             {!current && !caseErr && <div className="m-6 animate-pulse text-slate-500">Loading case…</div>}
             {current && (
-              <CaseView key={current.questionId} c={current} readOnly={readOnly} onAction={onAction} busy={busy} error={actionErr} />
+              <CaseView key={current.questionId} c={current} readOnly={readOnly} canAct={!!passcode} onAction={onAction} busy={busy} error={actionErr} />
             )}
           </main>
         </div>

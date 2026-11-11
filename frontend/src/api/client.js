@@ -64,9 +64,44 @@ export async function getCase(id) {
   return fetchJson(`/api/cases/${id}`)
 }
 
+// Reviewer passcode: kept only for this browser tab (sessionStorage), sent as a header.
+// The server is the one that enforces it; this is just how the console supplies it.
+let passcode = ''
+try {
+  passcode = sessionStorage.getItem('rf-passcode') || ''
+} catch {
+  /* storage blocked: memory only */
+}
+
+export function getPasscode() {
+  return passcode
+}
+
+export function setPasscode(v) {
+  passcode = v
+  try {
+    if (v) sessionStorage.setItem('rf-passcode', v)
+    else sessionStorage.removeItem('rf-passcode')
+  } catch {
+    /* storage blocked */
+  }
+}
+
 export async function postAction(id, payload) {
   if (mode === 'snapshot') throw new Error('Read-only snapshot mode: actions are disabled')
-  return fetchJson(`/api/cases/${id}/actions`, { method: 'POST', body: JSON.stringify(payload) })
+  if (!passcode) throw new Error('Enter the reviewer passcode (top right) to approve, edit or reject.')
+  try {
+    return await fetchJson(`/api/cases/${id}/actions`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: { 'x-reviewer-passcode': passcode },
+    })
+  } catch (e) {
+    if (e.status === 401) throw new Error('Reviewer passcode is incorrect. Nothing was changed.')
+    if (e.status === 429) throw new Error('Too many wrong passcode attempts. Wait a few minutes and try again.')
+    if (e.status === 503) throw new Error('Faculty actions are disabled on this server (no passcode configured).')
+    throw e
+  }
 }
 
 export async function getAudit() {

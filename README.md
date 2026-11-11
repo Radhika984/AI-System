@@ -12,9 +12,9 @@ Students tap **Report error** and type whatever they feel like. This system deci
 | Product thinking (1 page) | [`PRODUCT.md`](PRODUCT.md) |
 | Spec, routing rules, traceability | [`SPEC.md`](SPEC.md) |
 | Bonus: unreported defects | [`bonus_findings.json`](bonus_findings.json) |
-| Live console | _see submission email_ |
+| Live console | **Not deployed yet.** After deployment this row lists the Vercel console URL and the Render API `/health` URL. Until then, run it locally (below). |
 
-> **Precomputed results.** The live console serves `results.json`, which was generated offline with **Google AI Studio free-tier Gemini models (₹0 spent)**. The deployed API makes **no LLM calls**, so it can't run out of credits or be prompt-injected at runtime. Faculty actions (approve/edit/reject) are live and audited.
+> **Precomputed results.** The live console serves `results.json`, which was generated offline with **Google AI Studio free-tier Gemini models (₹0 spent)**. The deployed API makes **no LLM calls**, so it can't run out of credits or be prompt-injected at runtime. Faculty actions (approve/edit/reject) are live, audited, and require a reviewer passcode that is checked by the server.
 
 ## Architecture
 
@@ -67,10 +67,11 @@ Requires Python 3.10+ and Node 18+.
 
 ```bash
 pip install -r backend/requirements.txt
-python -m pytest -q tests                  # deterministic + offline-stub tests, no API key needed
+python -m pytest -q tests                  # 126 deterministic, offline-stub, API and security tests; no API key needed
 
-# API (serves the committed results.json; no key needed)
-cd backend && uvicorn app.main:app --port 8000
+# API (serves the committed results.json; no LLM key needed).
+# Faculty actions need a reviewer passcode, read from the environment only (see "Reviewer access").
+cd backend && REVIEWER_PASSCODE='<choose one>' uvicorn app.main:app --port 8000
 
 # Console (in another terminal; proxies /api to :8000)
 cd frontend && npm ci && npm run dev       # http://localhost:5173
@@ -96,12 +97,50 @@ python scripts/build_snapshot.py           # refresh the console's read-only fal
 | `LLM_MIN_INTERVAL_S`, `LLM_TIMEOUT_S`, `LLM_MAX_RETRIES` | Pacing, timeout and backoff settings. |
 | `LLM_OFFLINE=1` | Cache-only replay; any cache miss is an error, so the API is never called. |
 | `CORS_ORIGINS`, `STATE_DIR` | API server settings. |
+| `REVIEWER_PASSCODE` | Shared passcode for approve, edit and reject (header `X-Reviewer-Passcode`). Set only in the server environment. If unset, faculty actions are **disabled**. |
+| `ADMIN_RESET_TOKEN` | Separate token for `POST /api/admin/reset` (header `X-Admin-Token`). If unset, or equal to the passcode, the endpoint doesn't exist (404). |
 
 **Cost controls.**
 - Every response is cached by (model, prompt version, prompt); the cache is committed, so reruns are free and reproducible.
 - Calls are paced, and 429/5xx responses get exponential backoff with jitter, honouring the server's `retryDelay`.
 - On a daily-quota 429 the run stops cleanly (exit code 3) and resumes from cache later. It never switches model or provider.
 - Malformed JSON is recovered locally first, with at most one repair call.
+
+## Reviewer access and demo reset
+
+* **Every write is protected by the backend.** `POST /api/cases/{id}/actions` (approve, edit, reject, reopen) requires the header `X-Reviewer-Passcode` to match `REVIEWER_PASSCODE` from the server environment.
+  - The comparison is constant-time.
+  - A wrong or missing passcode returns 401 and changes nothing.
+  - Repeated failures from one client return 429.
+  - If the variable is unset, writes are disabled (503), never left open.
+  - Read endpoints stay public.
+  - The console asks for the passcode once per browser tab (it's kept in `sessionStorage`) and shows **view only** until one is entered.
+* **Restoring a clean demo state** (for example before a recording, or after visitors have clicked around). There are two ways:
+  - `POST /api/admin/reset` with header `X-Admin-Token: <ADMIN_RESET_TOKEN>`. It doesn't exist unless that variable is set, the reviewer passcode is not accepted, and it's hidden from the OpenAPI schema.
+  - Or, from a shell on the server: `python scripts/reset_demo_state.py --note "before demo"`.
+
+  Either way, the current `state/` files are **archived** to `state/archive/<timestamp>/` (nothing is deleted), a fresh audit log starts with a `demo_reset` entry, and the precomputed auto-applies are re-applied. `data/` is never touched.
+
+  ```bash
+  curl -X POST "$API/api/admin/reset" -H "X-Admin-Token: $ADMIN_RESET_TOKEN" -H "content-type: application/json" -d '{"note":"before demo"}'
+  ```
+
+## Browser end-to-end checks
+
+```bash
+pip install playwright==1.48.0 && python -m playwright install chromium
+cd frontend && npm ci && cd ..
+python tests/e2e/run_e2e.py      # 17 checks; screenshots go to tests/e2e/out/ (gitignored)
+```
+
+The runner is self-contained. It starts the API on a throwaway `STATE_DIR` with a random passcode, starts Vite, and drives headless Chromium through these checks:
+- all 39 cases render, with native MathML
+- view-only mode without a passcode, and a wrong passcode refused by the server
+- approve, edit (including a guard error) and reject, which reverts an auto-apply, each producing an audit entry
+- auto-advance to the next case, and no horizontal scroll at 390 px
+- the read-only snapshot fallback when the API is unreachable
+
+It then stops everything and confirms `data/` is unchanged. It isn't collected by pytest, because it needs a browser and Node.
 
 ## Deployment
 
@@ -113,6 +152,7 @@ python scripts/build_snapshot.py           # refresh the console's read-only fal
 ## Limitations, stated honestly
 
 * **Free-tier limits.** Gemini's free tier allows 20 requests per day per model, so questions are batched: 10 per solver call and 4 per judge call. Solver A and the judge share a model; solver B is a different model.
-* **Render free tier has an ephemeral disk.** Faculty actions and the audit log survive restarts of the process, but are lost on redeploy or spin-down. A production version would use a database.
-* There is no authentication. The reviewer name typed in the header is recorded as the audit actor.
+* **Render free tier has an ephemeral disk.** Faculty actions and the audit log persist across requests and survived a local process restart in testing. On Render's free tier they are lost on redeploy or spin-down, which resets to the clean demo state. A production version would use a database.
+* **Access control is a single shared passcode, not per-user accounts.** The name typed in the header is recorded as the audit actor but isn't authenticated. Wrong passcodes are rate-limited (8 failures per 10 minutes per client).
+* **Audit timestamps for system auto-applies** show when the API process loaded the results (or when the demo was last reset), not when the offline triage ran.
 * `results.json` is the engine's output. Any deviation from what the engine produced would be listed in `PROMPTS.md`; there are none unless stated there.

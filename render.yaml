@@ -16,3 +16,8 @@ services:
         value: http://localhost:5173
       - key: STATE_DIR
         value: state
+      # Secrets: set in the Render dashboard (sync: false = never stored in this file)
+      - key: REVIEWER_PASSCODE
+        sync: false
+      - key: ADMIN_RESET_TOKEN
+        sync: false

@@ -122,7 +122,7 @@ class Store:
             "questionId": qid,
             "subject": q.get("subject"), "chapter": q.get("chapter"), "type": q["questionType"],
             "stem_preview": N.split_options(N.body(q).get("question", ""))[0][:140],
-            "tier": tier, "tier_label": taxonomy.TIER_LABEL[tier] if not (attention and min(tiers) == 5) else "AI unsure - solvers dispute the key",
+            "tier": tier, "tier_label": taxonomy.TIER_LABEL[tier],
             "verdict": lead["verdict"], "repair": lead.get("repair"), "route": route,
             "confidence": min(r["confidence"] for r in rows),
             "reporters": len({self.reports[r["reportId"]]["studentId"] for r in rows}),
@@ -130,6 +130,8 @@ class Store:
             "oldest_report": reported[0], "newest_report": reported[-1],
             "status": st.get("state", "pending"),
             "needs_attention": attention,
+            "attention_reason": next((v.get("attention_reason") for v in det.get("reports", {}).values()
+                                      if v.get("attention_reason")), None),
             "headline": lead["evidence"][:160],
         }
 
@@ -258,6 +260,29 @@ class Store:
                 raise ValueError(f"unknown action {action!r}")
             self._save()
             return self.case(qid)
+
+    def reset_demo(self, actor: str, note: str = "") -> dict:
+        """Restore the clean demo state. Nothing is deleted: current state files are moved to
+        state/archive/<timestamp>/, a fresh audit log starts with a `demo_reset` entry that names
+        the archive, and the precomputed auto-applies are re-applied. data/ is never touched."""
+        with self._lock:
+            stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+            archive = self.state_dir / "archive" / stamp
+            archive.mkdir(parents=True, exist_ok=True)
+            moved = []
+            for name in ("audit.jsonl", "patches.json", "case_status.json"):
+                src = self.state_dir / name
+                if src.exists():
+                    src.replace(archive / name)
+                    moved.append(name)
+            self.patches, self.status = {}, {}
+            self.audit = AuditLog(self.state_dir / "audit.jsonl")
+            entry = self.audit.append(actor=(actor or "admin")[:60], action="demo_reset", question_id="*",
+                                      report_ids=[], before=f"archived to state/archive/{stamp}", after="clean",
+                                      note=note[:200])
+            self._bootstrap_auto_apply()
+            return {"reset_at": entry["at"], "archived": f"state/archive/{stamp}", "files": moved,
+                    "auto_applied_again": sum(1 for s in self.status.values() if s.get("state") == "auto_applied")}
 
     def _revert_system_patch(self, qid, actor, rids):
         for p in self.patches.get(qid, []):

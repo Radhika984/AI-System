@@ -1,11 +1,12 @@
 """API + store + audit tests on an isolated state dir (originals never touched)."""
 import hashlib
+import secrets
 import json
 
 import pytest
 from fastapi.testclient import TestClient
 
-from app import config, main
+from app import config, main, security
 from app.store import Store
 
 R004_Q = "68e870ef42c06737d6e565c4"
@@ -35,7 +36,10 @@ def client(tmp_path, monkeypatch):
     res.write_text(json.dumps(FIXTURE), encoding="utf-8")
     st = Store(state_dir=tmp_path / "state", results_path=res, details_path=tmp_path / "none.json")
     monkeypatch.setattr(main, "_store", st)
-    return TestClient(main.app)
+    passcode = secrets.token_urlsafe(12)  # throwaway per test; real value lives only in server env
+    monkeypatch.setenv("REVIEWER_PASSCODE", passcode)
+    security.reset_rate_limits()
+    return TestClient(main.app, headers={"X-Reviewer-Passcode": passcode})
 
 
 def sha(p):

@@ -42,3 +42,34 @@ def test_solver_view_is_blind(qof):
     u = P.solver_user(N.question_view(q))
     assert "4800 N / m" not in u.split("OPTIONS")[0]  # solution value not in stem section
     assert "solution" not in u.lower() and "answer key" not in u.lower()
+
+
+# ---------------- SPEC §3 rule 5 (solver disagreement) - pipeline.solvers_dispute
+from app.pipeline import solvers_dispute  # noqa: E402
+
+
+def test_rule5_definite_disagreement_counts_for_any_verdict():
+    agree = {"answers": {"A": "A", "B": "C"}}
+    assert solvers_dispute(agree, {"A": {}, "B": {}}, "no_error", None) == "A=A, B=C"
+    assert solvers_dispute(agree, {"A": {}, "B": {}}, "defect", "wrong_chapter") == "A=A, B=C"
+
+
+def test_rule5_no_answer_is_abstention():
+    assert solvers_dispute({"answers": {"A": "C", "B": None}}, {"A": {}, "B": {}}, "defect", "option_repair") is None
+
+
+def test_rule5_missing_content_report_is_abstention_only_for_missing_content_defects():
+    agree = {"answers": {"A": "50", "B": "0"}}
+    solves = {"A": {"problems_noticed": ["Missing edge length; assumed 10 cm"]},
+              "B": {"problems_noticed": ["Missing initial volume of the cube"]}}
+    assert solvers_dispute(agree, solves, "defect", "stem_data") is None      # R006: the failure IS the defect
+    assert solvers_dispute(agree, solves, "no_error", None) == "A=50, B=0"     # otherwise it is a real dispute
+
+
+def test_rule5_agreement_is_not_dispute():
+    assert solvers_dispute({"answers": {"A": "B", "B": "B"}}, {"A": {}, "B": {}}, "no_error", None) is None
+
+
+def test_rule5_respects_numeric_tolerance():
+    # R033: 3113 vs 3112.99 are the same answer within solver.agreement's 1% tolerance
+    assert solvers_dispute({"agree": True, "answers": {"A": "3113", "B": "3112.99"}}, {"A": {}, "B": {}}, "no_error", None) is None

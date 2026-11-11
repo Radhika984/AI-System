@@ -196,6 +196,40 @@ def _norm_ws(s: str) -> str:
     return re.sub(r"\s+", " ", s).strip()
 
 
+def check_faculty_edit(q: dict, edit: Edit | dict) -> GuardResult:
+    """Faculty may author content the AI may not (e.g. new distractors for
+    identical_options), so repair *scope* is not enforced — but structure is:
+    find-once, parses, no script/handlers, valid answer format, no option lost."""
+    if isinstance(edit, dict):
+        try:
+            edit = Edit(**edit)
+        except Exception as e:  # noqa: BLE001
+            return GuardResult(False, [f"edit schema: {e}"])
+    errs: list[str] = []
+    b = N.body(q)
+    if edit.field == "answer":
+        return check_edit(q, "answer_key", edit)
+    if edit.field not in ("question", "solution"):
+        return GuardResult(False, [f"faculty edits may touch question/solution/answer, not {edit.field}"])
+    src = b.get(edit.field) or ""
+    n = src.count(edit.find)
+    if n != 1:
+        errs.append(f"find must occur exactly once in {edit.field} (found {n})")
+    if _DANGEROUS.search(edit.replace):
+        errs.append("replace contains script/style/event-handler markup")
+    if errs:
+        return GuardResult(False, errs)
+    after = src.replace(edit.find, edit.replace, 1)
+    if not N.parses(after):
+        errs.append("edited HTML does not parse")
+    if edit.field == "question" and q["questionType"] in ("scq", "mcq"):
+        _, o0 = N.split_options(src)
+        _, o1 = N.split_options(after)
+        if len([v for v in o1.values() if v.strip()]) < len([v for v in o0.values() if v.strip()]):
+            errs.append("edit removes or blanks an option")
+    return GuardResult(not errs, errs, edit.find, edit.replace, N.to_text(src), N.to_text(after))
+
+
 # ------------------------------------------------------------------ routing
 
 @dataclass

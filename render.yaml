@@ -1,0 +1,18 @@
+# Render Blueprint: FastAPI backend (free plan). No LLM key is needed at runtime:
+# the console serves precomputed results.json and records faculty actions.
+services:
+  - type: web
+    name: acadza-report-fix-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: false
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: CORS_ORIGINS
+        value: http://localhost:5173
+      - key: STATE_DIR
+        value: state

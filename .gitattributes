@@ -1,0 +1,4 @@
+* text=auto eol=lf
+# original dataset: keep byte-exact (SHA-256 pinned in tests)
+data/** -text
+*.png binary

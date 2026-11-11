@@ -101,7 +101,7 @@ Tier 1 answer_key / wrong_question / unsound → Tier 2 stem_data / option_repai
 | R-S4 | Backend-enforced reviewer passcode on all writes; fail-closed; rate-limited | `security.py`, `main.py` | ✅ `tests/test_security.py`, e2e |
 | R-S5 | Safe demo reset (admin token, archive, no public unrestricted reset) | `store.reset_demo`, `/api/admin/reset`, `scripts/reset_demo_state.py` | ✅ `tests/test_security.py` |
 | R-S6 | SPEC §3 rule 5 solver-disagreement confidence cap + escalation | `pipeline.solvers_dispute` | ✅ `tests/test_solver.py`, `test_reproducible` |
-| R-E2E | Browser e2e checks in repo | `tests/e2e/run_e2e.py` | ✅ 17/17 |
+| R-E2E | Browser e2e checks in repo | `tests/e2e/run_e2e.py` | ✅ 18/18 (incl. passcode-leak check) |
 
 ## 7. Known conflicts / decisions
 

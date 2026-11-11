@@ -132,12 +132,12 @@ python scripts/build_snapshot.py           # refresh the console's read-only fal
 ```bash
 pip install playwright==1.48.0 && python -m playwright install chromium
 cd frontend && npm ci && cd ..
-python tests/e2e/run_e2e.py      # 17 checks; screenshots go to tests/e2e/out/ (gitignored)
+python tests/e2e/run_e2e.py      # 18 checks; screenshots go to tests/e2e/out/ (gitignored)
 ```
 
 The runner is self-contained. It starts the API on a throwaway `STATE_DIR` with a random passcode, starts Vite, and drives headless Chromium through these checks:
 - all 39 cases render, with native MathML
-- view-only mode without a passcode, and a wrong passcode refused by the server
+- view-only mode without a passcode, a wrong passcode refused by the server, and the passcode never present in the page HTML
 - approve, edit (including a guard error) and reject, which reverts an auto-apply, each producing an audit entry
 - auto-advance to the next case, and no horizontal scroll at 390 px
 - the read-only snapshot fallback when the API is unreachable

@@ -30,24 +30,46 @@ function Confidence({ value }) {
 
 function Solves({ c }) {
   const a = c.agreement || {}
-  const chips = Object.entries(c.solves || {}).map(([k, s]) => {
-    const ans = (a.answers || {})[k]
-    const match = ans != null && ans === a.stored_key
-    return (
-      <span key={k} className="rounded-md bg-slate-100 px-2 py-1 text-xs text-slate-700" title={s.method || s.error || ''}>
-        Blind solver {k}: <b>{ans ?? '?'}</b> {ans != null && (match ? '= key' : '≠ key')}
-      </span>
-    )
-  })
-  if (!chips.length) return null
+  const entries = Object.entries(c.solves || {})
+  if (!entries.length) return null
+  const key = a.stored_key ?? c.answer
+  let summary, tone
+  if (a.agree && a.matches_key) {
+    summary = `Both blind solvers independently got ${a.answer}, the same as the stored key.`
+    tone = 'bg-emerald-50 text-emerald-900'
+  } else if (a.agree) {
+    summary = `Both blind solvers independently got ${a.answer}. The stored key says ${key}.`
+    tone = 'bg-amber-50 text-amber-900'
+  } else {
+    const parts = entries.map(([k]) => `${k}: ${(a.answers || {})[k] ?? 'no option'}`).join(', ')
+    summary = `The blind solvers disagree (${parts}; stored key ${key}). Treat the AI's view with care.`
+    tone = 'bg-slate-100 text-slate-800'
+  }
   return (
-    <div className="mt-3 flex flex-wrap items-center gap-2">
-      {chips}
-      <span className="rounded-md bg-slate-900 px-2 py-1 text-xs text-white">Stored key: {a.stored_key ?? c.answer}</span>
-      {a.numeric_ok === true && <span className="text-xs text-emerald-700">✓ arithmetic re-checked</span>}
-      {a.numeric_ok === false && <span className="text-xs text-rose-700">✗ arithmetic re-check failed</span>}
+    <div className={`mt-3 rounded-lg px-3 py-2 text-sm ${tone}`}>
+      {summary}
+      {a.numeric_ok === true && <span className="ml-2 text-xs text-emerald-700">✓ Arithmetic re-checked by code.</span>}
+      {a.numeric_ok === false && <span className="ml-2 text-xs text-rose-700">✗ The code re-check of the arithmetic failed.</span>}
+      <details className="mt-1 text-xs text-slate-600">
+        <summary className="cursor-pointer">How each solver got there</summary>
+        <ul className="mt-1 space-y-1">
+          {entries.map(([k, s]) => (
+            <li key={k}><b>Solver {k}</b> ({s.model}): {s.method || s.error}</li>
+          ))}
+        </ul>
+      </details>
     </div>
   )
+}
+
+function fixSummary(c) {
+  const d = c.diff
+  if (!d) return null
+  if (d.field === 'answer') return `Change the key from ${d.before} to ${d.after}`
+  const strip = (s) => String(s).replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()
+  const f = strip(d.find).slice(0, 50)
+  const r = strip(d.replace).slice(0, 60)
+  return `In the ${d.field}: “${f || '(blank)'}” → “${r}”`
 }
 
 function Diff({ c }) {
@@ -71,12 +93,12 @@ function Diff({ c }) {
     return (
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="rounded-lg bg-rose-50 p-3">
-          <div className="text-xs font-semibold text-rose-700">Answer key now</div>
-          <div className="mt-1 font-mono text-lg text-rose-900 line-through">{d.before}</div>
+          <div className="text-xs font-semibold text-rose-700">Current key</div>
+          <div className="mt-1 font-mono text-lg text-rose-900">{d.before}</div>
           <div className="text-sm text-rose-800">{opt(d.before)}</div>
         </div>
         <div className="rounded-lg bg-emerald-50 p-3">
-          <div className="text-xs font-semibold text-emerald-700">Answer key after</div>
+          <div className="text-xs font-semibold text-emerald-700">Key after the fix</div>
           <div className="mt-1 font-mono text-lg font-bold text-emerald-900">{d.after}</div>
           <div className="text-sm text-emerald-800">{opt(d.after)}</div>
         </div>
@@ -195,7 +217,8 @@ export default function CaseView({ c, readOnly, onAction, busy, error }) {
   }, [readOnly])
   const st = STATUS[c.status] || STATUS.pending
   const done = ['approved', 'edited', 'rejected'].includes(c.status)
-  const approveLabel = c.route === 'auto_apply' ? 'Keep fix' : c.diff ? 'Approve fix' : 'Confirm & send reply'
+  const approveLabel =
+    c.route === 'auto_apply' ? 'Keep fix' : c.diff ? 'Approve fix' : c.verdict === 'defect' ? 'Confirm problem' : 'Confirm & send reply'
 
   return (
     <article className="mx-auto max-w-5xl space-y-4 p-4 pb-32">
@@ -208,6 +231,7 @@ export default function CaseView({ c, readOnly, onAction, busy, error }) {
           <span className={`ml-auto font-medium ${st.tone}`}>● {st.label}</span>
         </div>
         <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">{headline(c.verdict, c.repair)}</h2>
+        {fixSummary(c) && <p className="mt-1 break-words font-medium text-indigo-800">{fixSummary(c)}</p>}
         <div className="mt-2 flex flex-wrap items-center gap-3">
           <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ${ROUTE[c.route].tone}`}>{ROUTE[c.route].label}</span>
           <Confidence value={c.confidence} />
@@ -319,7 +343,7 @@ export default function CaseView({ c, readOnly, onAction, busy, error }) {
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="Optional note for the audit log"
-                className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                className="hidden min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm sm:block"
               />
               <button disabled={busy} onClick={() => onAction({ action: 'reject', note })}
                 className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"

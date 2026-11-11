@@ -28,6 +28,12 @@ function AuditDrawer({ open, onClose }) {
   useEffect(() => {
     if (open) getAudit().then(setRows).catch(() => setRows([]))
   }, [open])
+  useEffect(() => {
+    if (!open) return
+    const h = (e) => e.key === 'Escape' && onClose()
+    window.addEventListener('keydown', h)
+    return () => window.removeEventListener('keydown', h)
+  }, [open, onClose])
   if (!open) return null
   return (
     <div className="fixed inset-0 z-40 flex justify-end bg-slate-900/30" onClick={onClose}>

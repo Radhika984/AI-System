@@ -191,13 +191,27 @@ export default function App() {
             />
             <input
               type="password"
-              value={passcode}
+              // Uncontrolled on purpose: a React-controlled value={...} is reflected into the DOM
+              // `value` attribute, which would expose the passcode in the page HTML.
               onChange={(e) => updatePasscode(e.target.value)}
-              placeholder="Reviewer passcode"
+              placeholder={passcode ? 'Passcode set ✓' : 'Reviewer passcode'}
               aria-label="Reviewer passcode"
               autoComplete="off"
-              className={`w-0 min-w-0 flex-1 rounded-md border px-2 py-1 text-sm sm:w-40 sm:flex-none ${passcode ? 'border-emerald-400' : 'border-amber-400'}`}
+              className={`w-0 min-w-0 flex-1 rounded-md border px-2 py-1 text-sm sm:w-40 sm:flex-none ${passcode ? 'border-emerald-400 placeholder:text-emerald-700' : 'border-amber-400'}`}
             />
+            {passcode && (
+              <button
+                onClick={(e) => {
+                  updatePasscode('')
+                  const box = e.currentTarget.parentElement.querySelector('input[type=password]')
+                  if (box) box.value = ''
+                }}
+                className="shrink-0 rounded-md px-1.5 py-1 text-xs text-slate-500 hover:bg-slate-100"
+                title="Forget the passcode in this tab"
+              >
+                Clear
+              </button>
+            )}
             <button onClick={() => setAuditOpen(true)} className="shrink-0 rounded-md border border-slate-300 px-2.5 py-1 text-sm hover:bg-slate-50">
               Audit log
             </button>

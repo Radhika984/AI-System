@@ -3,6 +3,7 @@
     pip install playwright==1.48.0 && python -m playwright install chromium
     cd frontend && npm ci && cd ..
     python tests/e2e/run_e2e.py            # screenshots -> tests/e2e/out/ (gitignored)
+    E2E_PASSCODE=<canary> E2E_KEEP_LOGS=1 python tests/e2e/run_e2e.py   # leak scan: keeps logs in out/logs/
 
 Self-contained: starts the FastAPI app on a throwaway STATE_DIR with a random reviewer
 passcode, starts the Vite dev server proxying to it, runs every check, builds a snapshot
@@ -126,6 +127,7 @@ def browser_checks(ui: str, api: str, passcode: str) -> None:
         pg.locator("body").click(position={"x": 700, "y": 300})
         pg.keyboard.press("a")
         pg.wait_for_timeout(1500)
+        check("passcode never rendered into page HTML", passcode not in pg.content())
         a = api_json(api, "/api/audit")
         check("approve with passcode audited", a[0]["action"] == "approve" and a[0]["actor"] == "E2E Reviewer")
         advanced_to = pg.locator("article h2").first.inner_text()
@@ -191,7 +193,7 @@ def main() -> int:
     OUT.mkdir(parents=True, exist_ok=True)
     data_before = hashlib.sha256((ROOT / "data" / "questions.json").read_bytes()).hexdigest()
     tmp = Path(tempfile.mkdtemp(prefix="rf-e2e-"))
-    passcode = secrets.token_urlsafe(12)
+    passcode = os.environ.get("E2E_PASSCODE") or secrets.token_urlsafe(12)  # E2E_PASSCODE: canary for leak scans
     api_port, ui_port, prev_port = free_port(), free_port(), free_port()
     api, ui = f"http://127.0.0.1:{api_port}", f"http://127.0.0.1:{ui_port}/"
     env = {**os.environ, "STATE_DIR": str(tmp / "state"), "REVIEWER_PASSCODE": passcode,
@@ -219,6 +221,12 @@ def main() -> int:
     finally:
         for p in procs:
             stop(p)
+        if os.environ.get("E2E_KEEP_LOGS") == "1":  # keep server logs + audit for leak scans
+            keep = OUT / "logs"
+            keep.mkdir(parents=True, exist_ok=True)
+            for f in ("api.log", "vite.log", "preview.log", "state/audit.jsonl", "state/patches.json"):
+                if (tmp / f).exists():
+                    shutil.copy(tmp / f, keep / Path(f).name)
         shutil.rmtree(tmp, ignore_errors=True)
     check("original data unchanged", hashlib.sha256((ROOT / "data" / "questions.json").read_bytes()).hexdigest() == data_before)
     failed = [n for n, ok, _ in RESULTS if not ok]

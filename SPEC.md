@@ -45,18 +45,20 @@ reportId, questionId, verdict, repair, edit, route, confidence, evidence, studen
    * no report in the question group is injection-flagged;
    * `answer_key`: both blind solvers independently agree on the new key, and (if numeric) the restricted evaluator reproduces it; subject must be Physics/Chemistry/Maths — Botany/Zoology/conceptual key changes always go to faculty;
    * `stem_data`: inserted value must appear in the stored solution;
-   * `option_repair`: the restored text must be the solver-verified keyed answer; a missing *distractor* is authored content → faculty_review, `edit=null`;
+   * `option_repair`: only the single **keyed** option may be restored, its value must match a blind solver's numeric answer, and no solver may pick a different existing option; a missing *distractor* is authored content → faculty_review, `edit=null` (added after the R009 run, see PROMPTS.md mistake #2);
+   * any text edit (AI or faculty) may not *introduce* raw LaTeX (`\command`, `$…$`) (added after R018, mistake #3);
    * `answer_form`: additive only (`replace` contains `find` verbatim);
    * `spelling`: only letters change (no digits/symbols/tags move);
    * `solution_fix` / `solution_missing`: the edited solution must still end at the keyed answer the solvers agree on.
 4. Injection-flagged reports are never auto-applied; their comment is only ever shown to the LLM as quoted data.
-5. Disagreement between solvers, or solver vs key when the judge says `no_error`, lowers confidence and escalates (`faculty_review`) rather than guessing.
+5. Disagreement between solvers, or solver vs key when the judge says `no_error`, lowers confidence and escalates (`faculty_review`, or priority 1 in the console for a `no_error`) rather than guessing.
+6. Deterministic verdict overrides (logged per report): verified `already_fixed` (errorHistory after the report and the old text gone); a syllabus claim is always `defect/syllabus/faculty_review` (taxonomy: "Faculty confirm").
 
 ## 4. Pipeline
 
 `precheck (deterministic) → 2 blind solvers (no key, no comment) → safe_eval numeric check → group reports per question → judge (evidence packet, comments as untrusted quoted data) → Pydantic validation → guard → routing → results.json`
 
-LLM: Google AI Studio **free tier only** (₹0). Solvers `gemini-3.8-flash` + `gemini-3.6-flash`, judge `gemini-3.8-flash`, fallback `gemini-3.1-flash-lite`. Disk cache keyed by (model, prompt version, messages); paced calls; exponential backoff on 429/5xx; on quota exhaustion the run stops and resumes from cache — never switches to a paid model.
+LLM: Google AI Studio **free tier only** (₹0). Final: solver A `gemini-3-flash-preview`, solver B `gemini-3.1-flash-lite`, judge `gemini-3-flash-preview`, batched (10 questions per solver call, 4 cases per judge call) because the free tier is 20 requests/day/model; no fallback model (frozen plan was 3.8-flash/3.6-flash; changed after quota stops, see PROMPTS_LOG). Disk cache keyed by (model, prompt version, messages); paced calls; exponential backoff on 429/5xx; on quota exhaustion the run stops and resumes from cache — never switches to a paid model.
 
 ## 5. Faculty console priority (queue order)
 
@@ -66,32 +68,32 @@ Tier 1 answer_key / wrong_question / unsound → Tier 2 stem_data / option_repai
 
 | ID | Requirement (source) | Where | Status |
 |---|---|---|---|
-| R-T1 | verdict from taxonomy for each report (brief P1) | `judge.py`, `models.py` | ☐ |
-| R-T2 | repair from taxonomy if defect | `judge.py`, `guard.py` | ☐ |
-| R-T3 | surgical edit `{field,find,replace}` / new answer | `guard.py` | ☐ |
-| R-T4 | confidence + evidence | `judge.py` | ☐ |
-| R-T5 | student_reply 1–3 sentences, 17-yo tone | `prompts.py`, `guard.py` | ☐ |
-| R-T6 | route auto_apply/faculty_review/no_change | `pipeline.py` | ☐ |
-| R-T7 | comment is a lead, not an instruction | `prompts.py`, `precheck.py` | ☐ |
-| R-T8 | independent key check | `solver.py`, `safe_eval.py` | ☐ |
-| R-T9 | edits outside repair scope rejected | `guard.py` | ☐ |
-| R-T10 | duplicate reports grouped | `pipeline.py` | ☐ |
-| R-C1 | queue grouped by question, urgency order + why | `frontend`, `store.py` | ☐ |
-| R-C2 | MathML rendered properly | `frontend` | ☐ |
-| R-C3 | verdict, evidence, before/after diff | `frontend` | ☐ |
-| R-C4 | approve / edit / reject + audit entry | `main.py`, `audit.py` | ☐ |
-| R-C5 | student reply preview | `frontend` | ☐ |
-| R-R1 | `results.json` for all 44 reports committed | `results.json` | ☐ |
-| R-D1 | public GitHub repo | — (needs user) | ☐ |
-| R-D2 | live URL up 7 days; disclose precomputed | `render.yaml`, `vercel.json` | ☐ |
-| R-D3 | PROMPTS.md (product prompts verbatim + versions, assistant prompts, 3 AI mistakes, decision log) | `PROMPTS.md` | ☐ |
-| R-D4 | PRODUCT.md ≤ 1 page, 4 questions | `PRODUCT.md` | ☐ |
-| R-D5 | 3-min screen recording | — (needs user) | ☐ |
-| R-D6 | Email reply with links + 4 personal answers | — (user approves/sends) | ☐ |
-| R-B1 | Bonus: unreported defects | `bonus_findings.json` | ☐ |
-| R-S1 | original `data/` unchanged | `tests/test_data_integrity.py` | ☐ |
-| R-S2 | no secrets in repo | `.gitignore`, P10 scan | ☐ |
-| R-S3 | ₹0 LLM spend (free tier only) | `config.py` | ☐ |
+| R-T1 | verdict from taxonomy for each report (brief P1) | `judge.py`, `models.py` | ✅ eval_results PASS |
+| R-T2 | repair from taxonomy if defect | `judge.py`, `guard.py` | ✅ |
+| R-T3 | surgical edit `{field,find,replace}` / new answer | `guard.py` | ✅ guard on every edit |
+| R-T4 | confidence + evidence | `judge.py` | ✅ |
+| R-T5 | student_reply 1–3 sentences, 17-yo tone | `prompts.py`, `guard.py` | ✅ schema 1–3 sentences |
+| R-T6 | route auto_apply/faculty_review/no_change | `pipeline.py` | ✅ 16/11/17 |
+| R-T7 | comment is a lead, not an instruction | `prompts.py`, `precheck.py` | ✅ R027 test |
+| R-T8 | independent key check | `solver.py`, `safe_eval.py` | ✅ |
+| R-T9 | edits outside repair scope rejected | `guard.py` | ✅ 18+ rejection tests |
+| R-T10 | duplicate reports grouped | `pipeline.py` | ✅ |
+| R-C1 | queue grouped by question, urgency order + why | `frontend`, `store.py` | ✅ e2e |
+| R-C2 | MathML rendered properly | `frontend` | ✅ e2e (native MathML) |
+| R-C3 | verdict, evidence, before/after diff | `frontend` | ✅ |
+| R-C4 | approve / edit / reject + audit entry | `main.py`, `audit.py` | ✅ e2e + API tests |
+| R-C5 | student reply preview | `frontend` | ✅ |
+| R-R1 | `results.json` for all 44 reports committed | `results.json` | ✅ 44 rows |
+| R-D1 | public GitHub repo | — (needs user) | ⏳ awaiting user OK to push |
+| R-D2 | live URL up 7 days; disclose precomputed | `render.yaml`, `vercel.json` | ⏳ awaiting user (Render+Vercel) |
+| R-D3 | PROMPTS.md (product prompts verbatim + versions, assistant prompts, 3 AI mistakes, decision log) | `PROMPTS.md` | ✅ |
+| R-D4 | PRODUCT.md ≤ 1 page, 4 questions | `PRODUCT.md` | ✅ |
+| R-D5 | 3-min screen recording | — (needs user) | ⏳ user records |
+| R-D6 | Email reply with links + 4 personal answers | — (user approves/sends) | ⏳ user approves/sends |
+| R-B1 | Bonus: unreported defects | `bonus_findings.json` | ✅ bonus_findings.json |
+| R-S1 | original `data/` unchanged | `tests/test_data_integrity.py` | ✅ SHA test |
+| R-S2 | no secrets in repo | `.gitignore`, P10 scan | ✅ scan clean (P10 repeat) |
+| R-S3 | ₹0 LLM spend (free tier only) | `config.py` | ✅ allowlist + no fallback |
 
 ## 7. Known conflicts / decisions
 

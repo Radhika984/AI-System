@@ -153,6 +153,6 @@ It then stops everything and confirms `data/` is unchanged. It isn't collected b
 
 * **Free-tier limits.** Gemini's free tier allows 20 requests per day per model, so questions are batched: 10 per solver call and 4 per judge call. Solver A and the judge share a model; solver B is a different model.
 * **Render free tier has an ephemeral disk.** Faculty actions and the audit log persist across requests and survived a local process restart in testing. On Render's free tier they are lost on redeploy or spin-down, which resets to the clean demo state. A production version would use a database.
-* **Access control is a single shared passcode, not per-user accounts.** The name typed in the header is recorded as the audit actor but isn't authenticated. Wrong passcodes are rate-limited (8 failures per 10 minutes per client).
+* **Access control is a single shared passcode, not per-user accounts.** The name typed in the header is recorded as the audit actor but isn't authenticated. Wrong passcodes and wrong reset tokens share one rate limit: 8 failures per 10 minutes per client, after which even the correct passcode gets 429 until the window passes. The limiter is in-memory, so it resets when the process restarts.
 * **Audit timestamps for system auto-applies** show when the API process loaded the results (or when the demo was last reset), not when the offline triage ran.
 * `results.json` is the engine's output. Any deviation from what the engine produced would be listed in `PROMPTS.md`; there are none unless stated there.

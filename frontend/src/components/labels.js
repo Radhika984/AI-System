@@ -48,6 +48,32 @@ export function headline(verdict, repair) {
   return VERDICT_HEADLINE[verdict] || verdict
 }
 
+// Display-only rewording of the pipeline's routing / attention reasons for faculty. The raw reason is
+// unchanged in the API and audit; callers keep it available as a tooltip. Unknown strings pass through.
+const pct = (x) => `${Math.round(parseFloat(x) * 100)}%`
+const REASON_RULES = [
+  [/^all auto-apply conditions passed$/, () => 'Every automatic safety check passed, so the fix went live without waiting for a teacher.'],
+  [/^blind solvers do not agree with each other$/, () => 'The two independent AI solvers reached different answers.'],
+  [/^blind solvers disagree \(A=(.+), B=(.+)\)$/, (a, b) => `The two independent AI solvers got different answers (${a} and ${b})`],
+  [/^both blind solvers dispute the stored key$/, () => 'Both independent AI solvers got a different answer from the stored key'],
+  [/^confidence ([\d.]+) < ([\d.]+)$/, (c, t) => `The AI's confidence (${pct(c)}) is below the ${pct(t)} needed to apply a fix automatically.`],
+  [/^(\w+) is auto:false in taxonomy/, (r) => `“${REPAIR_HEADLINE[r] || r.replace(/_/g, ' ')}” is a type of fix that always needs a teacher to write or approve it.`],
+  [/^edit writes option\(s\)/, () => 'The proposed fix fills in a wrong (distractor) option. Only the correct option may be restored automatically; distractors must be written by a teacher.'],
+  [/^guard: no edit proposed$/, () => 'The AI did not propose an exact text change, so there is nothing to apply automatically.'],
+  [/^restricted evaluator did not reproduce/, () => "The code-based calculation re-check could not reproduce the solvers' numeric answer."],
+  [/^solvers do not confirm the keyed answer/, () => 'The independent solvers did not confirm the answer key that the corrected solution must reach.'],
+  [/^verdict (\w+) is not a defect$/, (v) => `No fault was found in the question (${(VERDICT_HEADLINE[v] || v.replace(/_/g, ' ')).toLowerCase()}), so nothing in it changes; only the reply is sent.`],
+]
+
+export function friendlyReason(raw) {
+  if (!raw) return raw
+  for (const [re, fn] of REASON_RULES) {
+    const m = raw.match(re)
+    if (m) return fn(...m.slice(1))
+  }
+  return raw
+}
+
 // Route = what the triage engine decided (never changed by the console).
 export const ROUTE = {
   auto_apply: { label: 'Auto-applied', tone: 'bg-okbg text-ok' },

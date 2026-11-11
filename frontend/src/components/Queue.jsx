@@ -72,6 +72,10 @@ export default function Queue({ items, selected, onSelect, filter, setFilter, qu
     done: items.filter(isDone).length,
     all: items.length,
   }
+  // "To review" = every open case; the overview's "Waiting for review" = only the open cases needing a decision.
+  const open = items.filter((c) => !isDone(c))
+  const nOpen = (k) => open.filter((c) => groupOf(c) === k).length
+  const decide = nOpen('urgent') + nOpen('review')
   return (
     <nav aria-label="Review queue" className="flex h-full flex-col">
       <div className="space-y-3 border-b border-line px-5 pb-4 pt-5">
@@ -106,6 +110,12 @@ export default function Queue({ items, selected, onSelect, filter, setFilter, qu
             </button>
           ))}
         </div>
+        {filter === 'todo' && counts.todo > 0 && (
+          <p className="text-[11.5px] leading-snug text-muted">
+            All {counts.todo} open cases: <b className="font-medium text-ink">{decide}</b> waiting for your decision,{' '}
+            {nOpen('auto')} auto-applied to spot-check, {nOpen('nochange')} with no change needed.
+          </p>
+        )}
       </div>
       <div className="scroll-quiet flex-1 overflow-y-auto px-2 pb-6">
         {visible.length === 0 && (

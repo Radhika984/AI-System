@@ -114,6 +114,7 @@ def browser_checks(ui: str, api: str, passcode: str) -> None:
         pg.fill("input[aria-label='Your name for the audit log']", "E2E Reviewer")
         pg.fill("input[aria-label='Reviewer passcode']", "definitely-wrong")
         pg.get_by_role("button", name="Reject").click()
+        pg.get_by_role("button", name="Yes, reject").click()  # confirmation step
         pg.wait_for_selector("text=Reviewer passcode is incorrect", timeout=10000)
         check("wrong passcode rejected by server", len(api_json(api, "/api/audit")) == n0)
         pg.screenshot(path=OUT / "02_wrong_passcode.png")
@@ -126,6 +127,10 @@ def browser_checks(ui: str, api: str, passcode: str) -> None:
         first_head = pg.locator("article h2").first.inner_text()
         pg.locator("body").click(position={"x": 700, "y": 300})
         pg.keyboard.press("a")
+        pg.wait_for_timeout(400)
+        check("keyboard approve asks for confirmation first", len(api_json(api, "/api/audit")) == n0
+              and pg.locator("[role=group][aria-label='Confirm decision']").count() == 1)
+        pg.locator("[role=group] button", has_text="Yes").click()
         pg.wait_for_timeout(1500)
         check("passcode never rendered into page HTML", passcode not in pg.content())
         a = api_json(api, "/api/audit")
@@ -154,6 +159,7 @@ def browser_checks(ui: str, api: str, passcode: str) -> None:
         pg.locator("nav button", has_text="density of a gas").first.click()
         pg.wait_for_selector("text=What the student receives")
         pg.get_by_role("button", name="Reject").click()
+        pg.get_by_role("button", name="Yes, reject").click()  # confirmation step
         pg.wait_for_timeout(1500)
         case = api_json(api, "/api/cases/68e870ef42c06737d6e565c4")
         acts = [e["action"] for e in api_json(api, "/api/audit")[:2]]

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import EditForm from './EditForm'
 import Html from './Html'
-import { Icon, STATUS, VERDICT_SHORT, fmtDate, headline, prettyMath, timeAgo } from './labels'
+import { Icon, STATUS, VERDICT_SHORT, fmtDate, friendlyReason, headline, prettyMath, timeAgo } from './labels'
 
 // ---------------------------------------------------------------- small building blocks
 const TONE = {
@@ -329,7 +329,9 @@ function Evidence({ c }) {
       <Sub title="Confidence and uncertainty">
         <p className="text-[14px] text-ink">
           AI confidence <b className="tabular-nums">{Math.round(c.confidence * 100)}%</b>
-          {c.needs_attention && <span className="text-warn"> · AI unsure: {c.attention_reason || 'the blind solvers disagree'}.</span>}
+          {c.needs_attention && (
+            <span className="text-warn" title={c.attention_reason || ''}> · AI unsure: {friendlyReason(c.attention_reason) || 'the two independent AI solvers disagree'}.</span>
+          )}
         </p>
         {(overrides.length > 0 || guard.length > 0) && (
           <div className="mt-3 space-y-2">
@@ -399,7 +401,7 @@ function Safety({ c }) {
         )}
         {c.needs_attention && (
           <SafetyRow tone="warn" icon="alert" title="AI uncertainty">
-            {c.attention_reason || 'The blind solvers disagree'}. Please check the evidence before confirming.
+            <span title={c.attention_reason || ''}>{friendlyReason(c.attention_reason) || 'The two independent AI solvers disagree'}</span>. Please check the evidence before confirming.
           </SafetyRow>
         )}
       </div>
@@ -407,7 +409,7 @@ function Safety({ c }) {
         <div className="mt-4 rounded-md bg-ivory px-4 py-3">
           <p className="eyebrow mb-1.5">Why it was routed here</p>
           <ul className="list-disc space-y-0.5 pl-4 text-[13px] text-ink">
-            {reasons.map((r) => <li key={r}>{r}</li>)}
+            {reasons.map((r) => <li key={r} title={r}>{friendlyReason(r)}</li>)}
           </ul>
         </div>
       )}
@@ -462,6 +464,23 @@ const ACTION_LABEL = {
   demo_reset: 'Demo reset',
 }
 
+// Edit find/replace are stored as question HTML (often MathML). Render the fragments sanitised, as the question
+// renders, instead of printing markup. Display only: the stored audit entry is untouched.
+const fragment = (s) => String(s ?? '').replace(/<br\s*\/?>/gi, ' ').trim()
+
+export function AuditChange({ edit }) {
+  return (
+    <div className="mt-1 flex flex-wrap items-baseline gap-x-1.5 gap-y-1 text-[12.5px] text-muted">
+      <code className="rounded-sm bg-ivory px-1 text-ink">{edit.field}</code>
+      <div className="audit-frag min-w-0 max-w-full text-err line-through"><Html html={fragment(edit.find)} /></div>
+      <span>→</span>
+      <div className="audit-frag min-w-0 max-w-full text-ok"><Html html={fragment(edit.replace)} /></div>
+    </div>
+  )
+}
+
+const statusLabel = (s) => STATUS[s]?.label || s
+
 function Timeline({ entries }) {
   if (!entries.length) return <p className="text-[14px] text-muted">No actions yet.</p>
   return (
@@ -475,16 +494,9 @@ function Timeline({ entries }) {
             <span className="text-muted">by {e.actor}</span>
             <span className="text-[12px] tabular-nums text-muted">{fmtDate(e.at)}</span>
           </p>
-          {e.edit && (
-            <p className="mt-1 break-words text-[12.5px] text-muted">
-              <code className="rounded-sm bg-ivory px-1 text-ink">{e.edit.field}</code>{' '}
-              <span className="font-mono text-err line-through">{String(e.edit.find).slice(0, 48)}</span>
-              {' → '}
-              <span className="font-mono text-ok">{String(e.edit.replace).slice(0, 48)}</span>
-            </p>
-          )}
+          {e.edit && <AuditChange edit={e.edit} />}
           {!e.edit && typeof e.before === 'string' && typeof e.after === 'string' && e.before.length < 40 && (
-            <p className="mt-1 text-[12.5px] text-muted">{e.before} → {e.after}</p>
+            <p className="mt-1 text-[12.5px] text-muted">Status: {statusLabel(e.before)} → {statusLabel(e.after)}</p>
           )}
           {e.note && <p className="mt-1 text-[12.5px] italic text-muted">{e.note}</p>}
         </li>
@@ -494,24 +506,37 @@ function Timeline({ entries }) {
 }
 
 // ---------------------------------------------------------------- page
-export default function CaseView({ c, rank, readOnly, canAct, onAction, busy, error }) {
+export default function CaseView({ c, rank, readOnly, canAct, onAction, busy, error, clearError }) {
   const [editing, setEditing] = useState(false)
+  const [confirming, setConfirming] = useState(null) // 'approve' | 'reject' awaiting a second, deliberate click
   const [note, setNote] = useState('')
   const editRef = useRef(null)
+  const st = STATUS[c.status] || STATUS.pending
+  const done = ['approved', 'edited', 'rejected'].includes(c.status)
+  const startEdit = () => {
+    setConfirming(null)
+    clearError?.()
+    setEditing(true)
+  }
   useEffect(() => {
     const h = (e) => {
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) || e.metaKey || e.ctrlKey) return
-      if (e.key === 'e' && !readOnly && canAct) setEditing(true)
+      if (readOnly || !canAct) return
+      if (e.key === 'e') startEdit()
+      if (e.key === 'Escape') setConfirming(null)
+      // A / R open the same confirmation as the buttons; nothing is posted until it is confirmed.
+      if ((e.key === 'a' || e.key === 'r') && !editing && !done && !busy) setConfirming(e.key === 'a' ? 'approve' : 'reject')
     }
     window.addEventListener('keydown', h)
     return () => window.removeEventListener('keydown', h)
-  }, [readOnly, canAct])
+  })
   useEffect(() => {
-    if (editing) editRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    if (editing) editRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [editing])
-
-  const st = STATUS[c.status] || STATUS.pending
-  const done = ['approved', 'edited', 'rejected'].includes(c.status)
+  const commit = async (action) => {
+    const ok = await onAction({ action, note })
+    if (ok !== false) setConfirming(null)
+  }
   const approveLabel =
     c.route === 'auto_apply' ? 'Keep correction' : c.diff ? 'Approve correction' : c.verdict === 'defect' ? 'Confirm problem' : 'Confirm & send reply'
   const approveHint = c.suggestion_withheld
@@ -571,7 +596,15 @@ export default function CaseView({ c, rank, readOnly, canAct, onAction, busy, er
           </details>
         </section>
 
-        <Block eyebrow="As students see it" title="Original question">
+        <Block
+          eyebrow={c.live_question_html !== c.question_html ? 'Stored original · before the correction' : 'As students see it'}
+          title="Original question">
+          {c.live_question_html !== c.question_html && (
+            <p className="mb-3 flex items-start gap-1.5 text-[12.5px] text-info">
+              <Icon name="info" className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              Students currently see the corrected version shown under “Original vs proposed”. This is the question as stored, before that correction.
+            </p>
+          )}
           <div className="surface px-6 py-5 sm:px-8 sm:py-6">
             <Html html={c.question_html} />
             {!c.has_images && /figure|diagram/i.test(c.question_html) && (
@@ -602,7 +635,12 @@ export default function CaseView({ c, rank, readOnly, canAct, onAction, busy, er
             <EditForm
               c={c}
               busy={busy}
-              onCancel={() => setEditing(false)}
+              error={error}
+              onInput={() => error && clearError?.()}
+              onCancel={() => {
+                clearError?.()
+                setEditing(false)
+              }}
               onSubmit={async (edit, nt) => {
                 const ok = await onAction({ action: 'edit', edit, note: nt })
                 if (ok) setEditing(false)
@@ -614,7 +652,7 @@ export default function CaseView({ c, rank, readOnly, canAct, onAction, busy, er
 
       {/* Decision bar: stays in view while reading */}
       <div className="sticky bottom-0 z-20 -mx-5 mt-10 border-t border-line bg-ivory/95 px-5 py-3 backdrop-blur sm:-mx-8 sm:px-8">
-        {error && (
+        {error && !editing && (
           <p role="alert" className="mb-2 flex items-start gap-2 rounded-md bg-errbg px-3 py-2 text-[13px] font-medium text-err">
             <Icon name="alert" className="mt-0.5 h-4 w-4 shrink-0" />{error}
           </p>
@@ -624,8 +662,25 @@ export default function CaseView({ c, rank, readOnly, canAct, onAction, busy, er
         ) : !canAct ? (
           <p className="flex items-center gap-2 text-[13.5px] text-warn">
             <Icon name="lock" className="h-4 w-4 shrink-0" />
-            <span>View only. Enter the <b>reviewer passcode</b> (top right) to approve, edit or reject; the server checks it on every action.</span>
+            <span>View only. Enter the <b>reviewer passcode</b> in the page header to approve, edit or reject; the server checks it on every action.</span>
           </p>
+        ) : editing && !done ? (
+          <p className="text-[13px] text-muted">
+            Editing the correction. Finish with <b className="text-ink">Validate &amp; apply</b> in the form above, or Cancel.
+          </p>
+        ) : confirming && !done ? (
+          <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Confirm decision">
+            <p className="mr-auto text-[13.5px] text-ink">
+              {confirming === 'approve'
+                ? <><b>{approveLabel}?</b> <span className="text-muted">{approveHint}</span></>
+                : <><b>Reject this recommendation?</b> <span className="text-muted">{c.route === 'auto_apply' ? 'The live correction will be undone.' : 'Nothing in the question changes.'}</span></>}
+            </p>
+            <button disabled={busy} onClick={() => setConfirming(null)} className="btn-neutral">Cancel</button>
+            <button autoFocus disabled={busy} onClick={() => commit(confirming)}
+              className={confirming === 'approve' ? 'btn-primary' : 'btn-danger'}>
+              {busy ? 'Saving…' : confirming === 'approve' ? `Yes, ${approveLabel.toLowerCase()}` : 'Yes, reject'}
+            </button>
+          </div>
         ) : done ? (
           <div className="flex flex-wrap items-center gap-3">
             <p className="text-[13.5px] text-muted">
@@ -645,13 +700,13 @@ export default function CaseView({ c, rank, readOnly, canAct, onAction, busy, er
               placeholder="Optional note for the audit log"
               className="field hidden min-w-0 flex-1 sm:block"
             />
-            <button disabled={busy} onClick={() => onAction({ action: 'reject', note })} className="btn-danger" title="Reject (R)">
+            <button disabled={busy} onClick={() => setConfirming('reject')} className="btn-danger" title="Reject (R)">
               Reject recommendation <kbd>R</kbd>
             </button>
-            <button disabled={busy} onClick={() => setEditing(true)} className="btn-neutral" title="Edit (E)">
+            <button disabled={busy} onClick={startEdit} className="btn-neutral" title="Edit (E)">
               Edit correction <kbd>E</kbd>
             </button>
-            <button disabled={busy} onClick={() => onAction({ action: 'approve', note })} className="btn-primary" title="Approve (A)">
+            <button disabled={busy} onClick={() => setConfirming('approve')} className="btn-primary" title="Approve (A)">
               {busy ? 'Saving…' : approveLabel} <kbd className="border-white/30 bg-white/10 text-white">A</kbd>
             </button>
           </div>

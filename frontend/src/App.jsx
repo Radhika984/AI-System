@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { getAudit, getCase, getMode, getPasscode, getQueue, getSnapshotMeta, postAction, setPasscode } from './api/client'
-import CaseView from './components/CaseView'
+import CaseView, { AuditChange } from './components/CaseView'
 import Queue, { filterItems, isDone } from './components/Queue'
 import { GROUPS, Icon, displayOrder, fmtDate, groupOf } from './components/labels'
 
@@ -68,12 +68,7 @@ function AuditDrawer({ open, onClose }) {
                   <span className="text-muted">by {e.actor}</span>
                 </p>
                 <p className="text-[12px] tabular-nums text-muted">{fmtDate(e.at)} · {e.reportIds?.join(', ')}</p>
-                {e.edit && (
-                  <p className="mt-1 break-words font-mono text-[12px] text-muted">
-                    {e.edit.field}: <span className="text-err line-through">{String(e.edit.find).slice(0, 60)}</span> →{' '}
-                    <span className="text-ok">{String(e.edit.replace).slice(0, 60)}</span>
-                  </p>
-                )}
+                {e.edit && <AuditChange edit={e.edit} />}
                 {e.note && <p className="mt-1 text-[12px] italic text-muted">{e.note}</p>}
               </li>
             ))}
@@ -204,7 +199,10 @@ export default function App() {
     reopen: 'Case reopened.',
   }
 
+  const inFlight = useRef(false) // blocks a second submit before the busy state has re-rendered
   const onAction = async (payload) => {
+    if (inFlight.current) return false
+    inFlight.current = true
     setBusy(true)
     setActionErr('')
     try {
@@ -223,11 +221,13 @@ export default function App() {
       setActionErr(e.message)
       return false
     } finally {
+      inFlight.current = false
       setBusy(false)
     }
   }
 
-  // Keyboard: J/K move through the list as displayed, A approve, R reject (ignored while typing)
+  // Keyboard: J/K move through the list as displayed (ignored while typing).
+  // A / R are handled by CaseView, which asks for confirmation before calling onAction.
   useEffect(() => {
     const h = (e) => {
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) || e.metaKey || e.ctrlKey) return
@@ -236,9 +236,6 @@ export default function App() {
       const i = visible.findIndex((c) => c.questionId === selected)
       if (e.key === 'j' && visible[i + 1]) select(visible[i + 1].questionId)
       if (e.key === 'k' && i > 0) select(visible[i - 1].questionId)
-      if (getMode() !== 'live' || !passcode || !current || busy || isDone(current)) return
-      if (e.key === 'a') onAction({ action: 'approve' })
-      if (e.key === 'r') onAction({ action: 'reject' })
     }
     window.addEventListener('keydown', h)
     return () => window.removeEventListener('keydown', h)
@@ -319,15 +316,7 @@ export default function App() {
               Try live again
             </button>
           </div>
-        ) : (
-          <p className="flex items-start gap-2 border-t border-line bg-infobg/60 px-5 py-2 text-[12.5px] text-info sm:px-8">
-            <Icon name="info" className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            <span>
-              The AI verdicts were precomputed offline with free-tier Gemini models (two blind solvers and a judge). Your
-              actions are live and audited, and the original question bank is never overwritten.
-            </span>
-          </p>
-        )}
+        ) : null}
       </header>
 
       {queue && <Overview queue={queue} showWhy={showWhy} setShowWhy={setShowWhy} />}
@@ -354,7 +343,7 @@ export default function App() {
             {caseErr && <p className="m-8 text-err">Couldn't load this case: {caseErr}</p>}
             {!current && !caseErr && <div className="m-8 animate-pulse text-muted">Loading case…</div>}
             {current && (
-              <CaseView key={current.questionId} c={current} rank={queue.find((q) => q.questionId === current.questionId)?.rank} readOnly={readOnly} canAct={!!passcode} onAction={onAction} busy={busy} error={actionErr} />
+              <CaseView key={current.questionId} c={current} rank={queue.find((q) => q.questionId === current.questionId)?.rank} readOnly={readOnly} canAct={!!passcode} onAction={onAction} busy={busy} error={actionErr} clearError={() => setActionErr('')} />
             )}
           </main>
         </div>

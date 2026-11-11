@@ -29,6 +29,10 @@
 .qhtml span { color: inherit !important; }
 .qhtml math { font-size: 1.08em; }
 .qhtml img { max-width: 100%; }
+/* audit trail: edit fragments rendered compactly (same sanitised renderer as the question) */
+.audit-frag .qhtml { font-size: 12.5px; line-height: 1.5; color: inherit; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.audit-frag .qhtml p { display: inline; margin: 0; }
+.audit-frag .qhtml img { display: none; }
 .diff-del { background: #F8ECEA; color: #B34D49; text-decoration: line-through; text-decoration-thickness: 1px; border-radius: 3px; padding: 0 3px; }
 .diff-ins { background: #EAF4ED; color: #267653; text-decoration: none; border-radius: 3px; padding: 0 3px; font-weight: 600; }
 kbd { font-family: ui-monospace, monospace; font-size: 10.5px; border: 1px solid #E5E6DE; border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; background: #fff; color: #747C75; }

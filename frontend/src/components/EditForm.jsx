@@ -3,12 +3,20 @@ import Html from './Html'
 
 // Faculty edit: same {field, find, replace} shape as the AI. The server re-runs the guard.
 // A withheld AI suggestion is never pre-filled (c.edit is null then), so the correction is entered deliberately.
-export default function EditForm({ c, busy, onCancel, onSubmit }) {
+export default function EditForm({ c, busy, error, onInput, onCancel, onSubmit }) {
   const init = c.edit || { field: 'question', find: '', replace: '' }
-  const [field, setField] = useState(init.field)
-  const [find, setFind] = useState(init.find)
-  const [replace, setReplace] = useState(init.replace)
+  const [field, _setField] = useState(init.field)
+  const [find, _setFind] = useState(init.find)
+  const [replace, _setReplace] = useState(init.replace)
   const [note, setNote] = useState('')
+  // Any change to the edit makes the server's last refusal outdated, so it is cleared.
+  const touch = (set) => (v) => {
+    set(v)
+    onInput?.()
+  }
+  const setField = touch(_setField)
+  const setFind = touch(_setFind)
+  const setReplace = touch(_setReplace)
   const src = field === 'question' ? c.question_html : field === 'solution' ? c.solution_html : c.answer
   const count = find ? src.split(find).length - 1 : 0
   const preview = field !== 'answer' && count === 1 ? src.replace(find, `<ins class="diff-ins">${replace}</ins>`) : null
@@ -54,6 +62,9 @@ export default function EditForm({ c, busy, onCancel, onSubmit }) {
         )}
         <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Reason (goes to the audit log)"
           className="field" />
+        {error && (
+          <p role="alert" className="rounded-md bg-errbg px-3 py-2 text-[13px] font-medium text-err">{error}</p>
+        )}
         <div className="flex justify-end gap-2">
           <button onClick={onCancel} className="btn text-muted hover:text-ink">Cancel</button>
           <button disabled={busy || !find || find === replace}

@@ -2,12 +2,40 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Question HTML from production: keep it readable, neutralise inline colours/sizes */
-.qhtml { line-height: 1.7; font-size: 15px; }
-.qhtml h1, .qhtml h2, .qhtml h3, .qhtml h4 { font-size: inherit; font-weight: 400; margin: 0 0 .35rem; }
+@layer base {
+  body { font-feature-settings: 'cv11', 'ss01'; }
+  ::selection { background: #E9EFE9; color: #183C32; }
+  :focus-visible { outline: 2px solid #183C32; outline-offset: 2px; }
+  summary { list-style: none; }
+  summary::-webkit-details-marker { display: none; }
+}
+
+@layer components {
+  .eyebrow { @apply text-[11px] font-semibold uppercase tracking-[0.12em] text-muted; }
+  .section-title { @apply font-serif text-[19px] font-semibold text-ink; }
+  .surface { @apply rounded-lg border border-line bg-white; }
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50; }
+  .btn-primary { @apply btn bg-forest text-white hover:bg-ink; }
+  .btn-neutral { @apply btn border border-line bg-white text-ink hover:border-sage; }
+  .btn-danger { @apply btn border border-err/40 bg-white text-err hover:bg-errbg; }
+  .field { @apply rounded-md border border-line bg-white px-3 py-1.5 text-sm text-ink placeholder:text-muted/80 transition-colors focus:border-sage focus:outline-none; }
+  .chev { @apply inline-block transition-transform duration-150; }
+  details[open] > summary .chev { transform: rotate(90deg); }
+}
+
+/* Question HTML from production: document-like, neutralise inline colours/sizes. MathML renders natively. */
+.qhtml { line-height: 1.75; font-size: 15.5px; color: #202B28; }
+.qhtml h1, .qhtml h2, .qhtml h3, .qhtml h4 { font-size: inherit; font-weight: 400; margin: 0 0 .4rem; }
 .qhtml span { color: inherit !important; }
 .qhtml math { font-size: 1.08em; }
 .qhtml img { max-width: 100%; }
-.diff-del { background: #fee2e2; color: #991b1b; text-decoration: line-through; border-radius: 3px; padding: 0 2px; }
-.diff-ins { background: #dcfce7; color: #166534; text-decoration: none; border-radius: 3px; padding: 0 2px; font-weight: 600; }
-kbd { font-family: ui-monospace, monospace; font-size: 11px; border: 1px solid #cbd5e1; border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; background: #fff; color: #475569; }
+.diff-del { background: #F8ECEA; color: #B34D49; text-decoration: line-through; text-decoration-thickness: 1px; border-radius: 3px; padding: 0 3px; }
+.diff-ins { background: #EAF4ED; color: #267653; text-decoration: none; border-radius: 3px; padding: 0 3px; font-weight: 600; }
+kbd { font-family: ui-monospace, monospace; font-size: 10.5px; border: 1px solid #E5E6DE; border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; background: #fff; color: #747C75; }
+
+/* Quiet scrollbars for the queue */
+.scroll-quiet { scrollbar-width: thin; scrollbar-color: #E5E6DE transparent; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+}

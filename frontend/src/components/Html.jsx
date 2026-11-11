@@ -11,6 +11,6 @@ const CONFIG = {
 
 export default function Html({ html, className = '' }) {
   const clean = useMemo(() => DOMPurify.sanitize(html || '', CONFIG), [html])
-  if (!html) return <p className="text-sm italic text-slate-400">(empty)</p>
+  if (!html) return <p className="text-sm italic text-muted">(empty)</p>
   return <div className={`qhtml ${className}`} dangerouslySetInnerHTML={{ __html: clean }} />
 }

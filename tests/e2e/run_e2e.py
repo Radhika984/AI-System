@@ -83,7 +83,7 @@ def browser_checks(ui: str, api: str, passcode: str) -> None:
         page_errors: list[str] = []
         pg.on("pageerror", lambda e: page_errors.append(str(e)))
         pg.goto(ui)
-        pg.wait_for_selector("text=Why the AI thinks so", timeout=60000)
+        pg.wait_for_selector("text=Why this recommendation?", timeout=60000)
         pg.screenshot(path=OUT / "01_queue_and_first_case.png")
 
         # every case renders
@@ -91,7 +91,7 @@ def browser_checks(ui: str, api: str, passcode: str) -> None:
         rendered = 0
         for i in range(len(queue)):
             pg.locator("nav ul li button").nth(i).click()
-            pg.wait_for_selector("text=The question as students see it", timeout=15000)
+            pg.wait_for_selector("text=Original question", timeout=15000)
             rendered += 1
         check("all cases render", rendered == len(queue) == 39, f"{rendered}/{len(queue)}")
         pg.locator("nav button", has_text="half life period").first.click()
@@ -182,7 +182,7 @@ def snapshot_check(port: int) -> None:
         pg = b.new_page(viewport={"width": 1440, "height": 900})
         pg.goto(f"http://127.0.0.1:{port}/")
         pg.wait_for_selector("text=Read-only snapshot.", timeout=60000)
-        pg.wait_for_selector("text=Why the AI thinks so", timeout=30000)
+        pg.wait_for_selector("text=Why this recommendation?", timeout=30000)
         pg.screenshot(path=OUT / "05_snapshot_mode.png")
         no_buttons = pg.get_by_role("button", name="Reject").count() == 0
         check("snapshot mode: banner + actions disabled", no_buttons and pg.locator("text=actions are disabled").count() > 0)

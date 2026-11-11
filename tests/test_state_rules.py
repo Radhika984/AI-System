@@ -127,7 +127,7 @@ def test_missing_state_files_are_a_fresh_start(tmp_path):
     assert Store(state_dir=st.state_dir).status[Q04]["state"] == "auto_applied"
 
 
-def test_api_reports_damaged_state_with_503_and_recovers(tmp_path, monkeypatch):
+def test_api_reports_damaged_state_with_503_and_recovers(tmp_path, monkeypatch, caplog):
     state = tmp_path / "state"
     Store(state_dir=state)                                         # create valid state
     good = (state / "case_status.json").read_bytes()
@@ -135,12 +135,16 @@ def test_api_reports_damaged_state_with_503_and_recovers(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "STATE_DIR", state)
     monkeypatch.setattr(main, "_store", None)
     c = TestClient(main.app)
-    for path in ("/health", "/api/queue", f"/api/cases/{Q04}", "/api/audit"):
-        r = c.get(path)
-        assert r.status_code == 503 and "case_status.json" in r.json()["detail"]
+    with caplog.at_level("ERROR", logger="uvicorn.error"):
+        for path in ("/health", "/api/queue", f"/api/cases/{Q04}", "/api/audit"):
+            r = c.get(path)
+            detail = r.json()["detail"]
+            assert r.status_code == 503 and "'case_status.json' is damaged" in detail
+            assert str(tmp_path) not in detail and "state" + "\\" not in detail and "/state/" not in detail  # no path
+    assert str(state / "case_status.json") in caplog.text           # full detail stays in the server log
     assert (state / "case_status.json").read_text(encoding="utf-8") == "{ broken"
     (state / "case_status.json").write_bytes(good)                 # operator restores the file
-    assert c.get("/health").status_code == 200
+    assert c.get("/health").status_code == 200                     # recovers on the next request, no restart
 
 
 # ============================================================ 3. rate-limit identity

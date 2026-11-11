@@ -161,6 +161,25 @@ def browser_checks(ui: str, api: str, passcode: str) -> None:
         pg.wait_for_timeout(1800)
         check("double-click on confirm records exactly one action", len(api_json(api, "/api/audit")) == n1 + 1)
 
+        # P2: the decision is saved but the queue refresh fails -> recorded once, warning shown, no retry offered
+        pg.locator("nav button", has_text="All").first.click()
+        pg.locator("nav button", has_text="Two wheels each marked").first.click()  # R031, not used elsewhere
+        pg.wait_for_selector("text=What the student receives")
+        n2 = len(api_json(api, "/api/audit"))
+        pg.route("**/api/queue", lambda route: route.abort())
+        pg.locator("article button.btn-primary").first.click()
+        confirm.locator("button", has_text="Yes").click()
+        pg.wait_for_timeout(1500)
+        toast = " ".join(pg.locator("[role=status]").all_inner_texts())
+        pg.locator("article h2").first.click()
+        pg.keyboard.press("a")  # a decided case must not offer a second decision
+        pg.wait_for_timeout(500)
+        check("refresh failure after a saved decision: recorded once, warning, no retry offered",
+              len(api_json(api, "/api/audit")) == n2 + 1 and "could not be refreshed" in toast and confirm.count() == 0
+              and pg.locator("article [role=alert]").count() == 0 and pg.get_by_role("button", name="Reopen").count() == 1,
+              toast[:120])
+        pg.unroute("**/api/queue")
+
         # edit: guard error surfaced, then a valid faculty edit
         pg.locator("nav button", has_text="All").first.click()
         pg.locator("nav button", has_text="Two options are identical").first.click()
@@ -192,6 +211,23 @@ def browser_checks(ui: str, api: str, passcode: str) -> None:
         pg.wait_for_selector("text=Audit log (all questions)")
         pg.screenshot(path=OUT / "03_audit_drawer.png")
         pg.keyboard.press("Escape")
+
+        # P5: an audit load failure is shown as an error, distinct from a genuinely empty audit log
+        pg.route("**/api/audit", lambda route: route.abort())
+        pg.get_by_role("button", name="Audit log").click()
+        pg.wait_for_timeout(800)
+        failed = pg.locator("[role=dialog]").inner_text()
+        pg.keyboard.press("Escape")
+        pg.unroute("**/api/audit")
+        pg.route("**/api/audit", lambda route: route.fulfill(status=200, content_type="application/json", body="[]"))
+        pg.get_by_role("button", name="Audit log").click()
+        pg.wait_for_timeout(800)
+        empty = pg.locator("[role=dialog]").inner_text()
+        pg.keyboard.press("Escape")
+        pg.unroute("**/api/audit")
+        check("audit drawer: load error distinct from an empty log",
+              "Couldn't load the audit log" in failed and "No actions recorded yet" not in failed
+              and "No actions recorded yet." in empty and "Couldn't load" not in empty)
 
         # mobile
         m = b.new_page(viewport={"width": 390, "height": 844}, is_mobile=True)

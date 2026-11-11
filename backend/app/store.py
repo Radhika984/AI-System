@@ -26,7 +26,15 @@ DECIDED = ("approved", "edited", "rejected")  # faculty decisions; a new decisio
 
 class StateFileError(RuntimeError):
     """A state file exists but cannot be read. The store refuses to start rather than treat
-    it as empty, so existing faculty decisions are never silently dropped or overwritten."""
+    it as empty, so existing faculty decisions are never silently dropped or overwritten.
+    str(e) is the detailed message (full path, parse error) for server logs; `public` names only
+    the file and is safe to return to clients."""
+
+    def __init__(self, detail: str, path: Path):
+        super().__init__(detail)
+        self.public = (f"Faculty state file '{Path(path).name}' is damaged, so faculty decisions were not loaded "
+                       f"and nothing was overwritten. An operator must restore it (or move it aside to start "
+                       f"fresh); the service recovers on the next request.")
 
 
 def _now() -> str:
@@ -73,12 +81,13 @@ class Store:
         except (OSError, UnicodeDecodeError, json.JSONDecodeError) as e:
             raise StateFileError(
                 f"State file {p} exists but could not be read ({type(e).__name__}: {e}). Faculty decisions were "
-                f"not loaded and nothing was overwritten. Restore the file (or move it aside to start fresh), "
-                f"then restart the server.") from e
+                f"not loaded and nothing was overwritten. Restore the file (or move it aside to start fresh); "
+                f"it is read again on the next request.", p) from e
         if not isinstance(obj, dict):
             raise StateFileError(
                 f"State file {p} must contain a JSON object but contains {type(obj).__name__}. Faculty decisions "
-                f"were not loaded and nothing was overwritten. Restore the file, then restart the server.")
+                f"were not loaded and nothing was overwritten. Restore the file; it is read again on the next "
+                f"request.", p)
         return obj
 
     def _save(self):

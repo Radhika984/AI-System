@@ -160,7 +160,7 @@ python scripts/build_snapshot.py           # refresh the console's read-only fal
   - Unknown fields in an action, an edit or a reset get a 422.
   - Reverted patches aren't sent to reviewers; the audit log keeps the full history.
 * **One decision per case.** Approve, edit and reject are refused (422) on a case that is already approved, edited or rejected; reopen it first (reopen undoes faculty patches). Reopen is only accepted for decided cases. A refused action changes nothing and writes no audit entry.
-* **Damaged state files fail closed.** If `state/patches.json` or `state/case_status.json` exists but is empty, truncated or not a JSON object, the API answers every request with a 503 naming the file and writes nothing, so decisions are never silently dropped or overwritten. Restore the file (or move it aside to start fresh) and restart. A missing file is simply a fresh state.
+* **Damaged state files fail closed.** If `state/patches.json` or `state/case_status.json` exists but is empty, truncated or not a JSON object, the API answers every request with a 503 naming the file (the response never includes a filesystem path; the full detail is in the server log) and writes nothing, so decisions are never silently dropped or overwritten. Restore the file (or move it aside to start fresh); no restart is needed, because the next request loads it again. A missing file is simply a fresh state.
 * **Restoring a clean demo state** (for example before a recording, or after visitors have clicked around). There are two ways:
   - `POST /api/admin/reset` with header `X-Admin-Token: <ADMIN_RESET_TOKEN>`. It doesn't exist unless that variable is set, the reviewer passcode is not accepted, and it's hidden from the OpenAPI schema.
   - Or, from a shell on the server: `python scripts/reset_demo_state.py --note "before demo"`.
@@ -176,7 +176,7 @@ python scripts/build_snapshot.py           # refresh the console's read-only fal
 ```bash
 pip install playwright==1.48.0 && python -m playwright install chromium
 cd frontend && npm ci && cd ..
-python tests/e2e/run_e2e.py      # 24 checks; screenshots go to tests/e2e/out/ (gitignored)
+python tests/e2e/run_e2e.py      # 26 checks; screenshots go to tests/e2e/out/ (gitignored)
 ```
 
 The runner is self-contained. It starts the API on a throwaway `STATE_DIR` with a random passcode, starts Vite, and drives headless Chromium through these checks:

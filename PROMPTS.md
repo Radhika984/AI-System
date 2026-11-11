@@ -416,7 +416,7 @@ Outcome: commit `8dcf34e`. The button now reads "Confirm decision" and the hints
 **Architecture**
 - **Group reports per question before judging.** Four questions have 2–3 reports, and they share a root cause. One judgement per question keeps the reports consistent, and the queue shows "3 students" as an urgency signal.
 - **Blind solvers on different models.** A solver that sees the key or the student's claim anchors on it; R004's student is confidently wrong ("8225"). Using different models makes their errors more independent. Trade-off, stated honestly: under quota pressure the judge shares a model with solver A.
-- **Deterministic code around the LLM.** The model proposes and code disposes. Precheck flags, the guard, routing and the post-rules are plain Python, with 199 pytest tests plus 24 browser end-to-end checks (`tests/e2e/run_e2e.py`). The LLM never writes to storage, and the deployed API makes **no** LLM calls, so it can't be prompt-injected at runtime.
+- **Deterministic code around the LLM.** The model proposes and code disposes. Precheck flags, the guard, routing and the post-rules are plain Python, with 228 pytest tests plus 26 browser end-to-end checks (`tests/e2e/run_e2e.py`). The LLM never writes to storage, and the deployed API makes **no** LLM calls, so it can't be prompt-injected at runtime.
 - **Rule-based overrides are visible.** Four exist:
   - verified already-fixed (R017);
   - a syllabus claim always goes to faculty (the taxonomy says "Faculty confirm");

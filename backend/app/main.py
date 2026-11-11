@@ -81,15 +81,16 @@ _store: Store | None = None
 
 
 def store() -> Store:
-    """Lazily load the store. A damaged state file fails closed: every request gets a 503 that says
-    which file is damaged, and nothing is written, until the file is restored and the server restarted."""
+    """Lazily load the store. A damaged state file fails closed: every request gets a 503 naming the
+    damaged file (never its filesystem path; the full detail goes to the server log), and nothing is
+    written. Loading is retried on each request, so restoring the file recovers without a restart."""
     global _store
     if _store is None:
         try:
             _store = Store()
         except StateFileError as e:
             _log.error("%s", e)
-            raise HTTPException(503, str(e))
+            raise HTTPException(503, e.public)
     return _store
 
 

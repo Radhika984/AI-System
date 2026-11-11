@@ -81,6 +81,28 @@ class SolverOutput(BaseModel):
     confidence: float = Field(default=0.5, ge=0.0, le=1.0)
     problems_noticed: list[str] = Field(default_factory=list)
 
+    @field_validator("final_answer", mode="before")
+    @classmethod
+    def _ans_str(cls, v):
+        if isinstance(v, list):
+            return ",".join(str(x) for x in v)
+        return "" if v is None else str(v)
+
+    @field_validator("numeric_value", mode="before")
+    @classmethod
+    def _num(cls, v):
+        if v in (None, "", "null"):
+            return None
+        try:
+            return float(v)
+        except (TypeError, ValueError):
+            return None
+
+    @field_validator("expression", mode="before")
+    @classmethod
+    def _expr(cls, v):
+        return None if v in (None, "", "null") else str(v)
+
 
 class JudgeReportDecision(BaseModel):
     reportId: str
@@ -88,7 +110,8 @@ class JudgeReportDecision(BaseModel):
     repair: Optional[str] = None
     confidence: float = Field(ge=0.0, le=1.0)
     evidence: str
-    student_reply: str
+    reply_if_fixed: str
+    reply_if_review: str
 
 
 class JudgeEditProposal(BaseModel):

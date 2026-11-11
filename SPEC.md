@@ -54,6 +54,7 @@ reportId, questionId, verdict, repair, edit, route, confidence, evidence, studen
    * `stem_data`: insert-only;
    * `type_mismatch`: question-text edits → faculty; a `questionType` change must match what both blind solvers' answers imply;
    * `solution_fix` / `solution_missing`: the edited solution must still end at the keyed answer the solvers agree on, and may not introduce numbers found nowhere in the question, solution or key.
+8. Suggested fixes on `faculty_review` cases are one-click only if no report on the question is injection-flagged and, for answer changes, both blind solvers gave exactly the proposed key; otherwise they are shown as evidence only (`Store.suggestion`) and Approve applies nothing. Requests: body ≤ 64 KB (413), edit `find` ≤ 2,000 / `replace` ≤ 4,000 chars, unknown fields rejected (422); reverted patches are not returned.
 7. Faculty actions are transactional (`Store.act`): validate → stage → save both state files → write audit. A refused request changes nothing (live question, status, patch file, audit).
 4. Injection-flagged reports are never auto-applied; their comment is only ever shown to the LLM as quoted data.
 5. Disagreement between solvers, or solver vs key when the judge says `no_error`, lowers confidence and escalates (`faculty_review`, or priority 1 in the console for a `no_error`) rather than guessing. Implemented in `pipeline.solvers_dispute` and `finalize`:

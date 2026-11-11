@@ -152,6 +152,50 @@ class Store:
             c["rank"] = i
         return items
 
+    def suggestion(self, qid: str, rows: list[dict]) -> tuple[dict | None, dict | None]:
+        """N1: decide whether the AI-proposed edit may be offered for one-click approval.
+
+        Returns (approvable_edit, withheld). A proposal is withheld - shown as evidence, never
+        approvable - when any report on the question is injection-flagged, or when an answer
+        change is not confirmed by BOTH blind solvers (a solver disagrees or gave no definite answer).
+        Faculty can still enter their own correction deliberately via the edit action."""
+        proposed = next((r["edit"] for r in rows if r.get("edit")), None)
+        if not proposed:
+            return None, None
+        det = self.details.get(qid, {})
+        reasons = []
+        flagged = det.get("injection_in_group") or any(
+            any(f.get("code") == "injection" for f in (rd.get("flags") or []))
+            for rd in (det.get("reports") or {}).values())
+        if flagged:
+            reasons.append("a report on this question tried to give the AI instructions (manipulation attempt)")
+        if proposed["field"] == "answer":
+            q = self.questions[qid]
+            try:
+                new = json.loads(proposed["replace"]) if q["questionType"] == "mcq" else proposed["replace"]
+            except json.JSONDecodeError:
+                new = None
+            new_norm, _ = N.normalize_answer(q["questionType"], new)
+            answers = (det.get("agreement") or {}).get("answers") or {}
+            for name in ("A", "B"):
+                a = answers.get(name)
+                if a is None:
+                    reasons.append(f"blind solver {name} did not confirm the proposed key")
+                    continue
+                a_norm, _ = N.normalize_answer(q["questionType"], a.split(",") if q["questionType"] == "mcq" else a)
+                if q["questionType"] == "integerQuestion":
+                    try:
+                        same = abs(float(a_norm) - float(new_norm)) <= 1e-6
+                    except (TypeError, ValueError):
+                        same = False
+                else:
+                    same = a_norm == new_norm
+                if not same:
+                    reasons.append(f"blind solver {name} answered {a}, not the proposed {proposed['replace']}")
+        if reasons:
+            return None, {"proposed": proposed, "reasons": reasons}
+        return proposed, None
+
     def case(self, qid: str) -> dict:
         rows = self.groups().get(qid)
         if not rows:
@@ -160,7 +204,7 @@ class Store:
         live = self.live_question(qid)
         det = self.details.get(qid, {})
         b, lb = N.body(q), N.body(live)
-        edit = next((r["edit"] for r in rows if r.get("edit")), None)
+        edit, withheld = self.suggestion(qid, rows)
         diff = self._diff(q, edit) if edit else None
         reports = []
         for r in sorted(rows, key=lambda r: self.reports[r["reportId"]]["reportedAt"]):
@@ -193,7 +237,8 @@ class Store:
             "question_flags": det.get("question_flags", []),
             "injection_in_group": det.get("injection_in_group", False),
             "reports": reports,
-            "patches": self.patches.get(qid, []),
+            "patches": [p for p in self.patches.get(qid, []) if not p.get("reverted")],  # N2: history lives in the audit
+            "suggestion_withheld": withheld,
             "status_detail": self.status.get(qid, {"state": "pending"}),
             "audit": self.audit.entries(qid),
         }
@@ -227,7 +272,7 @@ class Store:
                 raise KeyError(qid)
             rids = [r["reportId"] for r in rows]
             st = self.status.get(qid, {"state": "pending"})
-            proposed = next((r["edit"] for r in rows if r.get("edit")), None)
+            proposed, withheld = self.suggestion(qid, rows)  # N1: a withheld proposal is never applied
             q_live = self.live_question(qid)
             snapshot = (copy.deepcopy(self.patches), copy.deepcopy(self.status))
             pending_audit: list[dict] = []
@@ -241,8 +286,12 @@ class Store:
                             raise ValueError("proposed edit no longer valid: " + "; ".join(g.errors))
                         pending_audit.append(self._stage_patch(qid, proposed, actor, "approve", rids, q_live, note))
                     else:
+                        default_note = "verdict confirmed"
+                        if withheld:
+                            default_note += "; AI suggestion withheld (not applied): " + "; ".join(withheld["reasons"])
                         pending_audit.append(dict(actor=actor, action="approve", question_id=qid, report_ids=rids,
-                                                  before=st["state"], after="approved", note=note or "verdict confirmed"))
+                                                  before=st["state"], after="approved",
+                                                  note=(note + " | " if note else "") + default_note if withheld else (note or default_note)))
                     self.status[qid] = {"state": "approved", "at": _now(), "by": actor}
 
                 elif action == "edit":

@@ -6,13 +6,14 @@ calls, so it costs nothing to keep online and cannot be prompt-injected at runti
 """
 from __future__ import annotations
 
+import json
 from typing import Literal, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from . import config
 from .models import Edit
@@ -28,6 +29,51 @@ app.add_middleware(
     allow_headers=["content-type", "x-reviewer-passcode", "x-admin-token"],
 )
 
+# N2: hard cap on request bodies, enforced while the body streams in - before JSON parsing,
+# validation, state writes or audit. The largest valid action (an edit at the field limits) is ~6 KB.
+MAX_BODY_BYTES = 64 * 1024
+
+
+class BodySizeLimit:
+    """Pure ASGI middleware: 413 for a declared or actual body over MAX_BODY_BYTES."""
+
+    def __init__(self, app, limit: int):
+        self.app, self.limit = app, limit
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http" or scope["method"] in ("GET", "HEAD", "OPTIONS"):
+            return await self.app(scope, receive, send)
+        declared = dict(scope.get("headers") or []).get(b"content-length")
+        if declared is not None and declared.isdigit() and int(declared) > self.limit:
+            return await self._reject(send)
+        body, more = b"", True
+        while more:  # read the whole body up front so nothing downstream sees a partial request
+            msg = await receive()
+            if msg["type"] == "http.disconnect":
+                return
+            body += msg.get("body", b"")
+            more = msg.get("more_body", False)
+            if len(body) > self.limit:
+                return await self._reject(send)
+        sent = False
+
+        async def replay():
+            nonlocal sent
+            if sent:
+                return await receive()
+            sent = True
+            return {"type": "http.request", "body": body, "more_body": False}
+        return await self.app(scope, replay, send)
+
+    async def _reject(self, send):
+        payload = json.dumps({"detail": f"Request body too large (limit {self.limit // 1024} KB)."}).encode()
+        await send({"type": "http.response.start", "status": 413,
+                    "headers": [(b"content-type", b"application/json"), (b"content-length", str(len(payload)).encode())]})
+        await send({"type": "http.response.body", "body": payload})
+
+
+app.add_middleware(BodySizeLimit, limit=MAX_BODY_BYTES)
+
 _store: Store | None = None
 
 
@@ -39,6 +85,8 @@ def store() -> Store:
 
 
 class ActionIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")  # O1
+
     action: Literal["approve", "edit", "reject", "reopen"]
     actor: str = Field(default="faculty", max_length=60)
     note: str = Field(default="", max_length=500)
@@ -84,6 +132,8 @@ def act(question_id: str, body: ActionIn):
 
 
 class ResetIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")  # O1
+
     actor: str = Field(default="admin", max_length=60)
     note: str = Field(default="", max_length=200)
 

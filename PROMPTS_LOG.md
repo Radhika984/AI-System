@@ -159,3 +159,15 @@ What changed:
 * `store.py`: `act` is transactional (validate → stage → atomic two-file save → audit after commit; snapshot rollback on any exception). Faculty edits replacing an auto-apply are validated against the question without the system patch.
 * Tests: `tests/test_guard_semantic.py` (attacks blocked, legitimate fixes pass), `tests/test_store_atomic.py` (R022 scenarios, restart, valid edit, reject/revert, failed save), Hinglish + insistent judge (which insists twice, incl. the edit-repair retry) in `tests/test_llm_offline.py`. Run against the old code at ba394da: 24 of the new tests fail; on the new code all pass (177 total).
 * Harness slips while writing tests: synthetic report id "RX01" was rejected by the `R###` schema (a guard working); a stub with no scripted edit-repair reply raised IndexError — replaced with an attacker that insists again (stronger test).
+
+## 2026-11-11 ~16:00 IST — Five extra adversarial tests → N1/N2/O1 fixed (0 API calls)
+
+### Coding-assistant prompt #12 (key lines, verbatim)
+> Run 5 ADDITIONAL ADVERSARIAL TESTS for Criterion B (Safety and Trust) [...] INDIRECT PROMPT INJECTION [...] CONFLICTING AI SOLVERS [...] MALICIOUS FACULTY INPUT [...] CROSS-REPORT MANIPULATION [...] RESTART AND PERSISTENCE [...] Do not fix anything; report only.
+
+Results: no automatic path could be bent (7 injection styles incl. teacher-approval claims, quoted "SYSTEM" text, role-play, Hindi-English, JSON payloads, tag break-out; 8 solver-conflict combinations; 18 malformed faculty requests; cross-question IDs; two restarts). Findings: **N1** an injection-steered key (A→C, contradicting both blind solvers) stayed the one-click suggestion — one Approve set the live key to C; **N2** no size limit on faculty edits (5 MB accepted; a case response reached 18 MB because reverted patches were returned); **O1** unknown request fields silently ignored. The assistant also noticed its own "5 MB body rejected" pass was only due to the note-length cap and re-tested with the payload inside the edit.
+
+### Coding-assistant prompt #13 (key lines, verbatim)
+> Fix N1, N2 and O1 [...] If a case is flagged for prompt injection/manipulation, do not offer its AI-proposed edit as a one-click faculty approval. If the proposed answer conflicts with either blind solver, do not offer that edit as an approvable suggestion. [...] Add a reasonable maximum request-body size. [...] Reject unknown top-level request fields. Reject unknown nested edit fields.
+
+What changed: `Store.suggestion` (N1; console shows the withheld proposal + reasons, Approve applies nothing, Edit form starts empty); `BodySizeLimit` ASGI middleware 64 KB + `Edit` field limits + reverted patches hidden (N2); `extra="forbid"` on `Edit`, `ActionIn`, `ResetIn` (O1); `judge.fix_edit_once` now passes only field/find/replace to `Edit` so cached replays are unaffected; client shows readable 413/422 messages (it used to print "[object Object]" for validation errors). results.json unchanged; R021's suggestion is now withheld (solver B answered C). New tests `tests/test_n1_n2_o1.py`: 19/22 fail on 055378b, 22/22 pass now; 199 total.

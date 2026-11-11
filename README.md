@@ -86,7 +86,7 @@ Requires Python 3.10+ and Node 18+.
 
 ```bash
 pip install -r backend/requirements.txt
-python -m pytest -q tests                  # 177 deterministic, offline-stub, API and security tests; no API key needed
+python -m pytest -q tests                  # 199 deterministic, offline-stub, API and security tests; no API key needed
 
 # API (serves the committed results.json; no LLM key needed).
 # Faculty actions need a reviewer passcode, read from the environment only (see "Reviewer access").
@@ -134,6 +134,16 @@ python scripts/build_snapshot.py           # refresh the console's read-only fal
   - If the variable is unset, writes are disabled (503), never left open.
   - Read endpoints stay public.
   - The console asks for the passcode once per browser tab (it's kept in `sessionStorage`) and shows **view only** until one is entered.
+* **Unsafe AI suggestions are never one-click.** For a case awaiting faculty review, the AI's proposed fix is offered for approval only if:
+  - no report on the question is flagged as a manipulation attempt; and
+  - for answer-key changes, **both** blind solvers independently gave exactly the proposed key.
+
+  Otherwise the console shows the proposal as evidence, with the reason it was withheld, and **Approve** confirms the problem without applying anything. Faculty can still enter their own correction with **Edit**; the form starts empty.
+* **Request limits.**
+  - Request bodies over 64 KB get a 413 before they're parsed or stored.
+  - Edit `find` is limited to 2,000 characters and `replace` to 4,000.
+  - Unknown fields in an action, an edit or a reset get a 422.
+  - Reverted patches aren't sent to reviewers; the audit log keeps the full history.
 * **Restoring a clean demo state** (for example before a recording, or after visitors have clicked around). There are two ways:
   - `POST /api/admin/reset` with header `X-Admin-Token: <ADMIN_RESET_TOKEN>`. It doesn't exist unless that variable is set, the reviewer passcode is not accepted, and it's hidden from the OpenAPI schema.
   - Or, from a shell on the server: `python scripts/reset_demo_state.py --note "before demo"`.

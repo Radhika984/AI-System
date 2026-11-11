@@ -74,6 +74,25 @@ function fixSummary(c) {
 
 function Diff({ c }) {
   const d = c.diff
+  const w = c.suggestion_withheld
+  if (!d && w) {
+    return (
+      <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
+        <p className="font-semibold">The AI's suggested fix is withheld. Approve will not apply it.</p>
+        <ul className="mt-1 list-disc pl-5">
+          {w.reasons.map((r) => (
+            <li key={r}>{r}</li>
+          ))}
+        </ul>
+        <p className="mt-2 text-xs text-amber-900">
+          For reference only, the AI proposed <code className="rounded bg-white px-1">{w.proposed.field}</code>:{' '}
+          <span className="font-mono line-through">{String(w.proposed.find).slice(0, 80)}</span> →{' '}
+          <span className="font-mono">{String(w.proposed.replace).slice(0, 80)}</span>. If you agree after checking it
+          yourself, enter the correction with <b>Edit</b>.
+        </p>
+      </div>
+    )
+  }
   if (!d) {
     const msg =
       c.route === 'no_change'

@@ -4,7 +4,7 @@ from __future__ import annotations
 import re
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from . import taxonomy
 
@@ -12,10 +12,18 @@ Route = Literal["auto_apply", "faculty_review", "no_change"]
 EditField = Literal["question", "solution", "answer", "questionType"]
 
 
+# Field-specific edit limits (N2). The largest committed edit is 136 characters; question fields
+# are at most a few KB, so these leave room for genuine corrections but stop multi-MB payloads.
+EDIT_FIND_MAX = 2_000
+EDIT_REPLACE_MAX = 4_000
+
+
 class Edit(BaseModel):
+    model_config = ConfigDict(extra="forbid")  # O1: unknown keys are rejected, not silently ignored
+
     field: EditField
-    find: str
-    replace: str
+    find: str = Field(max_length=EDIT_FIND_MAX)
+    replace: str = Field(max_length=EDIT_REPLACE_MAX)
 
     @model_validator(mode="after")
     def _non_trivial(self):

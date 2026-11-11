@@ -19,7 +19,10 @@ async function fetchJson(path, opts = {}) {
     })
     const body = await res.json().catch(() => ({}))
     if (!res.ok) {
-      const err = new Error(body.detail || `HTTP ${res.status}`)
+      const detail = Array.isArray(body.detail)
+        ? body.detail.map((d) => `${(d.loc || []).slice(1).join('.') || 'request'}: ${d.msg}`).join('; ')
+        : body.detail
+      const err = new Error(detail || `HTTP ${res.status}`)
       err.status = res.status
       throw err
     }
@@ -99,6 +102,8 @@ export async function postAction(id, payload) {
   } catch (e) {
     if (e.status === 401) throw new Error('Reviewer passcode is incorrect. Nothing was changed.')
     if (e.status === 429) throw new Error('Too many wrong passcode attempts. Wait a few minutes and try again.')
+    if (e.status === 413) throw new Error('That edit is too large to save. Keep corrections short and surgical.')
+    if (e.status === 422 && /extra|forbidden|not permitted/i.test(e.message)) throw new Error('Request contained unexpected fields and was rejected. Nothing was changed.')
     if (e.status === 503) throw new Error('Faculty actions are disabled on this server (no passcode configured).')
     throw e
   }

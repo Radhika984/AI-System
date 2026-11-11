@@ -151,7 +151,7 @@ def fix_edit_once(q: dict, repair: str, edit: Edit, errors: list[str], client: L
         data, _ = client.complete_json(model=config.JUDGE_MODEL, system=P.EDIT_FIX_SYSTEM, user=user,
                                        prompt_version=P.EDIT_FIX_VERSION)
         e = (data or {}).get("edit")
-        return Edit(**e) if e else None
+        return Edit(**{k: e.get(k) for k in ("field", "find", "replace")}) if isinstance(e, dict) and e else None
     except QuotaExhausted:
         # Optional retry: without quota we simply don't repair the edit. The case then
         # routes to faculty_review with edit=null - the conservative direction.

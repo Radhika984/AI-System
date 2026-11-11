@@ -288,7 +288,7 @@ Effect: the assistant pointed to the existing enforcement (the free-model allowl
 **Architecture**
 - **Group reports per question before judging.** Four questions have 2–3 reports, and they share a root cause. One judgement per question keeps the reports consistent, and the queue shows "3 students" as an urgency signal.
 - **Blind solvers on different models.** A solver that sees the key or the student's claim anchors on it; R004's student is confidently wrong ("8225"). Using different models makes their errors more independent. Trade-off, stated honestly: under quota pressure the judge shares a model with solver A.
-- **Deterministic code around the LLM.** The model proposes and code disposes. Precheck flags, the guard, routing and the post-rules are plain Python, with 177 pytest tests plus 18 browser end-to-end checks (`tests/e2e/run_e2e.py`). The LLM never writes to storage, and the deployed API makes **no** LLM calls, so it can't be prompt-injected at runtime.
+- **Deterministic code around the LLM.** The model proposes and code disposes. Precheck flags, the guard, routing and the post-rules are plain Python, with 199 pytest tests plus 18 browser end-to-end checks (`tests/e2e/run_e2e.py`). The LLM never writes to storage, and the deployed API makes **no** LLM calls, so it can't be prompt-injected at runtime.
 - **Rule-based overrides are visible.** Four exist:
   - verified already-fixed (R017);
   - a syllabus claim always goes to faculty (the taxonomy says "Faculty confirm");
@@ -341,6 +341,18 @@ An independent Safety & Trust audit simulated a *fully compromised judge*: a stu
 - **V2: a refused faculty edit undid a live fix.** `store.act` reverted the system patch *before* validating the faculty edit. A 422 response left the typo live, the status inconsistent, and a false revert in the audit log.
   - **Fix:** every action is now transactional. It validates first, stages changes, saves both files together, writes the audit only after commit, and rolls back on any failure.
   - **Tests:** R022 regression tests cover invalid edits, a restart, a valid edit, a reject with revert, and a failed save.
+
+**Adversarial-audit fixes (N1, N2, O1)**
+
+Five further adversarial tests found that every automatic path held, plus three weaknesses in what faculty are offered.
+
+- **N1: the attacker-steered fix was still the suggested fix.** An obedient judge's injection-driven key change (A → C, against both blind solvers) went to faculty review correctly. But it was still offered as the one-click fix, and a single Approve set the live key to C.
+  - **Fix:** `Store.suggestion` withholds the proposal on injection-flagged questions, and on answer changes not confirmed by both blind solvers. It stays visible as evidence with its reasons, and Approve confirms without applying.
+  - **Effect on real data:** in the real dataset this withholds R021's normalised key `["B"]`, because its solver B answered C. `results.json` is unchanged.
+- **N2: unbounded edits.** A passcode holder could store 1–5 MB edits, and reverted patches were sent to every reviewer (one case reached 18 MB).
+  - **Fix:** a 64 KB streaming body limit (413 before parsing), field limits on `find` and `replace`, and reverted patches dropped from case responses.
+- **O1: unknown fields were silently ignored.** They're now rejected (`extra="forbid"`).
+- **Tests:** `tests/test_n1_n2_o1.py`. On the old code, 19 of the 22 tests fail.
 
 **Tried and dropped**
 - One prompt per report: dropped for per-question grouping.

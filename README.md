@@ -68,17 +68,19 @@ taxonomy.json ┘   malformed keys, missing/blank/duplicate │
 
 ### Faculty console
 
-The queue is grouped by question and ordered by harm to students:
+The queue is grouped by question (one entry per question, however many students reported it) and shown in five groups, ordered by harm to students:
 
-1. **Priority 1:** wrong key, wrong question, unsound question, and "AI unsure" cases (the blind solvers disagree, or both dispute the stored key)
-2. **Priority 2:** missing data, option or figure
-3. **Priority 3:** wrong solution
-4. **Priority 4:** cosmetic issues
-5. **Priority 5:** no change needed
+1. **Urgent attention:** wrong key (unless already auto-applied), wrong question, unsound question, and "AI unsure" cases (the blind solvers disagree, or both dispute the stored key)
+2. **Faculty review:** fixes the AI may not apply on its own: missing data, option or figure, then wrong solution, then cosmetic issues
+3. **Auto-applied - spot check:** fixes that are already live; keep them, or reject to undo
+4. **No change needed:** confirm the verdict and the drafted reply
+5. **Completed:** decided by faculty
 
-Within a band, more distinct reporters come first, then lower AI confidence, then the oldest report. Because of that order, the "AI unsure" cases (confidence 0.7) sit above the already-live key fixes (which are auto-applied and only need a spot check).
+Within a group, cases keep the server's urgency rank: priority band (1 = wrong key, wrong or unsound question, "AI unsure"; 2 = missing data, option or figure; 3 = wrong solution; 4 = cosmetic; 5 = no change), then more distinct reporters, then lower AI confidence, then the oldest report. The **To review** tab lists every open case; the overview's **Waiting for review** counts only the open cases that need a faculty decision (Urgent attention + Faculty review). **Why this order?** in the console explains the ranking.
 
-Each case answers five questions top to bottom: *what is wrong, why, what will change (rendered before/after diff), is it safe (route reasons, guard log, injection warning), what the student receives*. **Approve** is the primary action. Keyboard shortcuts: `A` approve, `E` edit, `R` reject, `J`/`K` next/previous. The console advances to the next case automatically after each decision.
+Each case reads top to bottom: a decision summary (verdict, current vs proposed answer, confidence, safety), *Original vs proposed* (rendered before/after diff), *Why this recommendation?* (AI reasoning, blind-solver and arithmetic checks, student reports), *Safety and human review* (route reasons, guard log, injection warning), *Student communication* (the student's comment and the drafted reply), the original question, and its audit history. **Approve** is the primary action.
+
+Keyboard shortcuts: `A` approve and `R` reject each open a confirmation first; nothing is recorded until you press **Enter** or click **Yes**, and **Escape** or **Cancel** closes it without recording anything. `E` opens the edit form; `J`/`K` move to the next/previous case. The console advances to the next case automatically after each decision.
 
 ## Run it locally
 
